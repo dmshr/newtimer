@@ -1,0 +1,61 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ===== GLOBAL RESET ===== */
+html, body {
+  padding: 0;
+  margin: 0;
+}
+
+/* ===== BASE STYLE ===== */
+body {
+  background: #0b0b0b;
+  color: white;
+  font-family: ui-sans-serif, system-ui;
+}
+
+/* ===== SCROLLBAR (gaming feel 🔥) ===== */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: black;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #7f1d1d;
+  border-radius: 10px;
+}
+
+/* ===== TEXT SELECTION ===== */
+::selection {
+  background: #dc2626;
+  color: white;
+}
+
+/* ===== CUSTOM ANIMATION ===== */
+@keyframes softPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.animate-soft-pulse {
+  animation: softPulse 1s infinite;
+}
+
+* {
+  scroll-behavior: smooth;
+}
+
+:root {
+  --header-height: 110px;
+}
+
+html,
+body {
+  height: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
