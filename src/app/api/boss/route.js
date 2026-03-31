@@ -1,25 +1,24 @@
 import { saveBoss, getAllBosses } from "@/repositories/bossRepository";
 
-export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-export const fetchCache = "force-no-store";
 
 export async function GET() {
-  const bosses = await getAllBosses();
-  return Response.json(bosses);
+  try {
+    const bosses = await getAllBosses();
+    return Response.json(bosses);
+  } catch (error) {
+    return Response.json({ error: "Failed to fetch bosses" }, { status: 500 });
+  }
 }
 
 export async function POST(req) {
-  const body = await req.json();
+  try {
+    const body = await req.json();
+    if (!body.name) return Response.json({ error: "Name required" }, { status: 400 });
 
-  if (!body.name) {
-    return Response.json(
-      { error: "Name is required" },
-      { status: 400 }
-    );
+    await saveBoss(body);
+    return Response.json({ success: true });
+  } catch (error) {
+    return Response.json({ error: error.message }, { status: 500 });
   }
-
-  await saveBoss(body);
-
-  return Response.json({ success: true });
 }
