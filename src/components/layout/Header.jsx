@@ -89,10 +89,10 @@ export default function Header() {
 
           {/* CENTER AREA */}
           <div className="flex-1 text-center px-1 min-w-0">
-            <div className="text-green-500 text-[14px] sm:text-[20px] font-mono tracking-[0.1em] uppercase leading-none font-bold truncate">
+            <div className="text-green-500 text-[16px] sm:text-[20px] font-mono tracking-[0.1em] uppercase leading-none font-bold truncate">
               Kain 3
             </div>
-            <div className="text-[7px] sm:text-[9px] text-zinc-600 tracking-[0.05em] mt-1 font-medium whitespace-nowrap overflow-hidden italic">
+            <div className="text-[8px] sm:text-[9px] text-zinc-500 tracking-[0.05em] mt-0 font-medium whitespace-nowrap overflow-hidden">
               Authenticated as : Admin
             </div>
           </div>

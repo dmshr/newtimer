@@ -73,13 +73,13 @@ export default function BossRow({ boss, onSelect }) {
       className="grid grid-cols-[80px_1fr_130px] md:grid-cols-[140px_1fr_190px] gap-2 px-2 md:px-4 py-4 items-center border-b border-gray-800 font-mono"
     >
       {/* Kolom 1: Nama */}
-      <span className="font-bold text-left tracking-wide text-[10px] sm:text-sm md:text-base overflow-visible">
+      <span className="font-semibold font-sans text-left tracking-wider text-[10px] sm:text-sm md:text-base overflow-visible">
         {boss.name}
       </span>
 
       {/* Kolom 2: Waktu (Fleksibel) */}
       <div className="text-right flex flex-col justify-center min-w-0 overflow-hidden">
-        <div className="text-[11px] sm:text-sm md:text-base font-black text-white font-mono whitespace-nowrap">
+        <div className="text-[11px] sm:text-sm md:text-base font-bold text-white font-sans tracking-wider whitespace-nowrap">
           {formatOnlyTime(boss.spawn)}
         </div>
         <div className="text-[9px] sm:text-[10px] text-zinc-500 font-bold tracking-tighter whitespace-nowrap opacity-80">
