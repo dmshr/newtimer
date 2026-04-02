@@ -6,16 +6,21 @@ export async function getAllBosses() {
 }
 
 export async function saveBoss(data) {
-  const { name, spawn, killed } = data;
+  // ✅ 1. Ambil interval_hours dari data payload
+  const { name, spawn, killed, interval_hours } = data;
   
-  // Logika UPSERT: Jika nama sudah ada, update datanya.
+  // ✅ 2. Pastikan nilai interval adalah angka (default ke 1 jika kosong)
+  const interval = parseInt(interval_hours) || 1;
+
+  // ✅ 3. Update query untuk menyertakan interval_hours
   return await sql`
-    INSERT INTO bosses (name, spawn, killed)
-    VALUES (${name}, ${spawn}, ${killed})
+    INSERT INTO bosses (name, spawn, killed, interval_hours)
+    VALUES (${name}, ${spawn}, ${killed}, ${interval})
     ON CONFLICT (name) 
     DO UPDATE SET 
       spawn = EXCLUDED.spawn,
-      killed = EXCLUDED.killed
+      killed = EXCLUDED.killed,
+      interval_hours = EXCLUDED.interval_hours
   `;
 }
 

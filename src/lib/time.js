@@ -1,21 +1,42 @@
 export function getCountdown(spawnTime) {
-  if (!spawnTime || spawnTime === "--:--:--") {
+  // 1. Validasi Awal
+  if (!spawnTime || spawnTime === "--:--:--" || spawnTime === "UNKNOWN") {
     return { label: "UNKNOWN", seconds: 0 };
   }
 
   const now = new Date();
-  const parts = spawnTime.split(":");
-  if (parts.length !== 3) return { label: "INVALID", seconds: 0 };
+  let targetDate;
 
-  const [h, m, s] = parts.map(Number);
-  const spawn = new Date();
-  spawn.setHours(h, m, s, 0);
+  // 2. Deteksi Tipe Input
+  if (spawnTime instanceof Date) {
+    // Jika input sudah berupa objek Date
+    targetDate = spawnTime;
+  } else if (typeof spawnTime === "string") {
+    if (spawnTime.includes(" ")) {
+      // Jika format tanggal lengkap: "01 Apr 2026 14:00:00"
+      targetDate = new Date(spawnTime);
+    } else {
+      // Jika format jam lama: "HH:mm:ss"
+      const parts = spawnTime.split(":");
+      if (parts.length !== 3) return { label: "INVALID", seconds: 0 };
 
-  if (spawn < now) spawn.setDate(spawn.getDate() + 1);
+      const [h, m, s] = parts.map(Number);
+      targetDate = new Date();
+      targetDate.setHours(h, m, s, 0);
 
-  const diff = Math.floor((spawn - now) / 1000);
+      // Logic lama: Jika jam sudah lewat, asumsikan besok 
+      // (hanya berlaku untuk input yang tidak punya tanggal)
+      if (targetDate < now) targetDate.setDate(targetDate.getDate() + 1);
+    }
+  }
+
+  // 3. Hitung Selisih (Selisih milidetik diubah ke detik)
+  const diff = Math.floor((targetDate - now) / 1000);
+
+  // Jika waktu target sudah terlewati
   if (diff <= 0) return { label: "SPAWNED", seconds: 0 };
 
+  // 4. Kalkulasi Jam, Menit, Detik untuk Label
   const hours = Math.floor(diff / 3600);
   const minutes = Math.floor((diff % 3600) / 60);
   const seconds = diff % 60;

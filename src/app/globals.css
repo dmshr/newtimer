@@ -2,26 +2,24 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ===== GLOBAL RESET ===== */
-html, body {
-  padding: 0;
-  margin: 0;
+:root {
+  --header-height: 110px;
 }
 
-/* ===== BASE STYLE ===== */
 body {
   background: #0b0b0b;
   color: white;
-  font-family: ui-sans-serif, system-ui;
+  /* Font Inter sangat bersih dan mudah dibaca */
+  font-family: var(--font-inter), ui-sans-serif, system-ui;
 }
 
-/* ===== SCROLLBAR (gaming feel 🔥) ===== */
+/* Scrollbar tetap tipis agar tidak mengganggu pandangan */
 ::-webkit-scrollbar {
-  width: 6px;
+  width: 5px;
 }
 
 ::-webkit-scrollbar-track {
-  background: black;
+  background: #000;
 }
 
 ::-webkit-scrollbar-thumb {
@@ -29,33 +27,8 @@ body {
   border-radius: 10px;
 }
 
-/* ===== TEXT SELECTION ===== */
-::selection {
-  background: #dc2626;
-  color: white;
-}
-
-/* ===== CUSTOM ANIMATION ===== */
-@keyframes softPulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
-}
-
-.animate-soft-pulse {
-  animation: softPulse 1s infinite;
-}
-
-* {
-  scroll-behavior: smooth;
-}
-
-:root {
-  --header-height: 110px;
-}
-
-html,
-body {
-  height: 100%;
-  overflow-x: hidden;
-  overflow-y: auto;
+/* Memastikan angka timer tetap sejajar (monospaced) */
+.font-timer {
+  font-family: var(--font-mono), monospace;
+  font-variant-numeric: tabular-nums;
 }
