@@ -23,7 +23,7 @@ export default function TableHeader() {
       </div>
 
       {/* LINE GRADIENT - Ditaruh di luar kontainer agar garisnya memenuhi layar (optional) */}
-      <div className="h-[2px] w-full bg-gradient-to-r from-transparent via-red-500 to-transparent opacity-60" />
+      <div className="h-[2px] w-full bg-gradient-to-r from-transparent via-red-500 to-transparent opacity-70" />
     </div>
   );
 }
