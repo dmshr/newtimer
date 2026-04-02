@@ -9,6 +9,18 @@ export default function BossModal({ boss, onClose, onSaved }) {
   const [confirmAction, setConfirmAction] = useState(null); 
   const datetimeRef = useRef(null);
 
+  // --- LOGIK BARU: FUNGSI UNTUK KIRIM SINYAL PUSHER ---
+  const notifyUpdate = async () => {
+    try {
+      await fetch("/api/pusher", {
+        method: "POST",
+        body: JSON.stringify({ message: "refresh" }),
+      });
+    } catch (err) {
+      console.error("Pusher Notify Error:", err);
+    }
+  };
+
   const formatToGmt7 = (dateObj) => {
     const formatter = new Intl.DateTimeFormat("en-GB", {
       timeZone: "Asia/Jakarta",
@@ -28,7 +40,6 @@ export default function BossModal({ boss, onClose, onSaved }) {
     return `${d} ${m} ${y} ${time}`;
   };
 
-  // Logic Interval: Mengubah angka jam menjadi Milidetik untuk kalkulasi akurat
   const addHours = (baseDate, hours) => {
     const date = new Date(baseDate);
     date.setTime(date.getTime() + (parseInt(hours) * 60 * 60 * 1000));
@@ -50,21 +61,25 @@ export default function BossModal({ boss, onClose, onSaved }) {
         if (!killedInput) return alert("Please enter time!");
         const nextSpawn = addHours(new Date(killedInput), boss.interval_hours);
         payload = { ...payload, spawn: nextSpawn, killed: killedInput };
-      }
-      
+      } 
       else if (confirmAction === 'justnow') {
         const now = new Date();
         const nextSpawn = addHours(now, boss.interval_hours);
         payload = { ...payload, spawn: nextSpawn, killed: formatToGmt7(now) };
       } 
       else if (confirmAction === 'notspawned') {
-        // Not Spawned: Tambahkan jam ke jadwal spawn yang sudah ada
         const currentSpawn = boss.spawn.includes(" ") ? new Date(boss.spawn) : new Date();
         const nextSpawn = addHours(currentSpawn, boss.interval_hours);
         payload = { ...payload, spawn: nextSpawn, killed: boss.killed };
       }
 
+      // 1. Update ke Database Neon
       await updateBoss(payload);
+
+      // ✅ 2. TRIGGER REAL-TIME: Kirim sinyal ke Pusher setelah DB berhasil diupdate
+      await notifyUpdate();
+
+      // 3. Callback UI lokal
       await onSaved();
       onClose();
     } catch (err) {
@@ -85,7 +100,6 @@ export default function BossModal({ boss, onClose, onSaved }) {
         <motion.div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
           <motion.div className="bg-[#0b0b0b] border border-red-900/40 w-full max-w-[380px] rounded-2xl p-6 relative shadow-2xl overflow-hidden font-inter" initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} onClick={(e) => e.stopPropagation()}>
             
-            {/* OVERLAY KONFIRMASI */}
             <AnimatePresence>
               {confirmAction && (
                 <motion.div initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }} className="absolute inset-0 bg-black z-50 flex flex-col items-center justify-center p-6 text-center">
@@ -118,8 +132,7 @@ export default function BossModal({ boss, onClose, onSaved }) {
                   <input value={killedInput} onChange={(e) => setKilledInput(e.target.value)} placeholder="DD Mmm YYYY HH:MM:SS" className="w-full bg-black border border-zinc-900 rounded-lg px-3 py-3 text-[11px] text-white focus:border-red-800 outline-none transition font-mono pr-9" />
                   <button type="button" onClick={() => datetimeRef.current.showPicker()} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-700 hover:text-red-600"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" /></svg></button>
                 </div>
-                <button onClick={() => setConfirmAction('save')} className="bg-red-700 hover:bg-red-600 text-white font-black px-5 py-3 rounded-lg transition uppercase tracking-widest text-[9px] shadow-lg shadow-red-900/20">Save 
-                  Time</button>
+                <button onClick={() => setConfirmAction('save')} className="bg-red-700 hover:bg-red-600 text-white font-black px-5 py-3 rounded-lg transition uppercase tracking-widest text-[9px] shadow-lg shadow-red-900/20">Save Time</button>
               </div>
               <input ref={datetimeRef} type="datetime-local" className="absolute opacity-0 pointer-events-none" onChange={handleCalendarChange} />
             </div>
