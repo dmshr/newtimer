@@ -45,7 +45,7 @@ export default function BossList() {
     });
 
     // Berlangganan ke channel yang sama dengan backend
-    const channel = pusher.subscribe("boss-channel");
+    const channel = pusher.subscribe("boss-timer-k3");
 
     // Tangkap event 'boss-updated'
     channel.bind("boss-updated", () => {

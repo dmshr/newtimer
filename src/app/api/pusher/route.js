@@ -15,7 +15,7 @@ export async function POST(request) {
     const { message } = await request.json();
 
     // Mengirim sinyal ke channel 'boss-channel' dengan event 'boss-updated'
-    await pusher.trigger("boss-channel", "boss-updated", {
+    await pusher.trigger("boss-timer-k3", "boss-updated", {
       message: message || "Data updated",
     });
 
