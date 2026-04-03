@@ -1,22 +1,23 @@
 import { sql } from "@/lib/db";
 
 export async function getAllBosses() {
+  // Karena kita simpan datanya sudah rapi, SELECT cukup pakai bintang saja.
+  // Ini 100% aman dari error 500.
   return await sql`SELECT * FROM bosses ORDER BY name ASC`;
 }
 
 export async function saveBoss(data) {
-  // 1. Tambahkan properti 'use_db_time' dari payload
-  const { name, spawn, killed, interval_hours, use_db_time } = data;
+  const { name, killed, interval_hours, use_db_time } = data;
   const interval = parseInt(interval_hours) || 1;
 
-  // 2. Jika menggunakan waktu database (Fitur "Just Now")
   if (use_db_time) {
+    // 🔥 SAAT SIMPAN: Kita langsung minta DB buat teks format Jakarta yang rapi
     return await sql`
       INSERT INTO bosses (name, killed, spawn, interval_hours)
       VALUES (
         ${name}, 
-        NOW(), 
-        NOW() + (${interval} || ' hours')::interval, 
+        TO_CHAR(NOW() AT TIME ZONE 'Asia/Jakarta', 'DD Mon YYYY HH24:MI:SS'), 
+        TO_CHAR((NOW() + (${interval} || ' hours')::interval) AT TIME ZONE 'Asia/Jakarta', 'DD Mon YYYY HH24:MI:SS'), 
         ${interval}
       )
       ON CONFLICT (name) 
@@ -27,14 +28,14 @@ export async function saveBoss(data) {
     `;
   }
 
-  // 3. Jika input manual (User mengetik waktu tertentu)
-  // Kita tetap biarkan database yang menghitung 'spawn' berdasarkan 'killed' yang diinput
+  // 📝 INPUT MANUAL: 
+  // Kita biarkan database menghitung spawn dari killed yang dikirim frontend
   return await sql`
     INSERT INTO bosses (name, killed, spawn, interval_hours)
     VALUES (
       ${name}, 
       ${killed}, 
-      (${killed}::timestamp + (${interval} || ' hours')::interval), 
+      TO_CHAR((${killed}::timestamp + (${interval} || ' hours')::interval), 'DD Mon YYYY HH24:MI:SS'), 
       ${interval}
     )
     ON CONFLICT (name) 

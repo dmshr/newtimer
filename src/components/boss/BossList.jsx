@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useSearchParams } from "next/navigation"; 
 import { AnimatePresence } from "framer-motion";
-import Pusher from "pusher-js"; // ✅ 1. Import Pusher Client
+import { pusherClient } from "@/lib/pusher"; // ✅ Gunakan client yang sudah kita buat di lib
 import BossRow from "@/components/boss/BossRow";
 import BossModal from "@/components/boss/BossModal";
 import { fetchBosses } from "@/services/bossServices";
@@ -28,36 +28,29 @@ export default function BossList() {
       const data = await fetchBosses();
       setBosses(sortBySpawn(data));
     } catch (err) {
-      console.error(err);
+      console.error("Fetch Error:", err);
     }
   }, []);
 
-  // Effect Utama: Ambil data saat halaman pertama dimuat
   useEffect(() => {
     loadBosses();
   }, [loadBosses]);
 
-  // ✅ 2. EFFECT REAL-TIME: Mendengarkan Sinyal dari Pusher
+  // ✅ 2. EFFECT REAL-TIME: Lebih rapi & anti-memory leak
   useEffect(() => {
-    // Inisialisasi koneksi Pusher
-    const pusher = new Pusher(process.env.NEXT_PUBLIC_PUSHER_KEY, {
-      cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER,
-    });
+    // Berlangganan ke channel
+    const channel = pusherClient.subscribe("boss-timer-k3");
 
-    // Berlangganan ke channel yang sama dengan backend
-    const channel = pusher.subscribe("boss-timer-k3");
-
-    // Tangkap event 'boss-updated'
+    // Tangkap event
     channel.bind("boss-updated", () => {
       console.log("⚡ Data update detected! Syncing with Neon...");
-      loadBosses(); // Otomatis tarik data terbaru dari database
+      loadBosses(); 
     });
 
-    // Cleanup: Putus koneksi jika halaman ditutup agar tidak memakan kuota Pusher
+    // Cleanup: Jangan biarkan koneksi menumpuk setiap kali render
     return () => {
-      channel.unbind_all();
-      channel.unsubscribe();
-      pusher.disconnect();
+      channel.unbind("boss-updated");
+      pusherClient.unsubscribe("boss-timer-k3");
     };
   }, [loadBosses]);
 
