@@ -1,24 +1,26 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { updateBoss } from "@/services/bossServices";
 
 export default function BossModal({ boss, onClose, onSaved }) {
   const [killedInput, setKilledInput] = useState("");
+  const [manualDate, setManualDate] = useState(""); 
+  const [manualTime, setManualTime] = useState(""); 
+  
+  // --- STATE UNTUK DETEKSI PERUBAHAN ---
+  const [initialState, setInitialState] = useState({ date: "", time: "" });
   const [confirmAction, setConfirmAction] = useState(null); 
-  const datetimeRef = useRef(null);
 
-  // --- LOGIK BARU: FUNGSI UNTUK KIRIM SINYAL PUSHER ---
-  const notifyUpdate = async () => {
-    try {
-      await fetch("/api/pusher", {
-        method: "POST",
-        body: JSON.stringify({ message: "refresh" }),
-      });
-    } catch (err) {
-      console.error("Pusher Notify Error:", err);
-    }
+  const getNowLocal = () => {
+    const now = new Date();
+    const offset = now.getTimezoneOffset() * 60000;
+    const localISOTime = new Date(now.getTime() - offset).toISOString();
+    return {
+      date: localISOTime.split("T")[0],
+      time: localISOTime.split("T")[1].slice(0, 5),
+    };
   };
 
   const formatToGmt7 = (dateObj) => {
@@ -40,15 +42,28 @@ export default function BossModal({ boss, onClose, onSaved }) {
     return `${d} ${m} ${y} ${time}`;
   };
 
-  const addHours = (baseDate, hours) => {
-    const date = new Date(baseDate);
-    date.setTime(date.getTime() + (parseInt(hours) * 60 * 60 * 1000));
-    return formatToGmt7(date);
-  };
+  useEffect(() => {
+    if (boss) {
+      const now = getNowLocal();
+      setManualDate(now.date);
+      setManualTime(now.time);
+      // Simpan waktu awal sebagai referensi pembanding
+      setInitialState({ date: now.date, time: now.time });
+      setConfirmAction(null);
+    }
+  }, [boss]);
 
   useEffect(() => {
-    if (boss) setKilledInput("");
-  }, [boss]);
+    if (manualDate && manualTime) {
+      const combined = new Date(`${manualDate}T${manualTime}:00`);
+      if (!isNaN(combined.getTime())) {
+        setKilledInput(formatToGmt7(combined));
+      }
+    }
+  }, [manualDate, manualTime]);
+
+  // 🔥 LOGIKA BARU: Cek apakah user sudah mengubah input atau belum
+  const isEdited = manualDate !== initialState.date || manualTime !== initialState.time;
 
   const executeAction = async () => {
     try {
@@ -57,41 +72,25 @@ export default function BossModal({ boss, onClose, onSaved }) {
         interval_hours: boss.interval_hours 
       };
 
-      if (confirmAction === 'save') {
-        if (!killedInput) return alert("Please enter time!");
-        const nextSpawn = addHours(new Date(killedInput), boss.interval_hours);
-        payload = { ...payload, spawn: nextSpawn, killed: killedInput };
+      if (confirmAction === 'justnow') {
+        payload.use_db_time = true;
       } 
-      else if (confirmAction === 'justnow') {
-        const now = new Date();
-        const nextSpawn = addHours(now, boss.interval_hours);
-        payload = { ...payload, spawn: nextSpawn, killed: formatToGmt7(now) };
+      else if (confirmAction === 'save') {
+        if (!isEdited) return; // Guard tambahan
+        payload.killed = killedInput;
       } 
       else if (confirmAction === 'notspawned') {
-        const currentSpawn = boss.spawn.includes(" ") ? new Date(boss.spawn) : new Date();
-        const nextSpawn = addHours(currentSpawn, boss.interval_hours);
-        payload = { ...payload, spawn: nextSpawn, killed: boss.killed };
+        payload.killed = boss.spawn; 
       }
 
-      // 1. Update ke Database Neon
       await updateBoss(payload);
-
-      // ✅ 2. TRIGGER REAL-TIME: Kirim sinyal ke Pusher setelah DB berhasil diupdate
-      await notifyUpdate();
-
-      // 3. Callback UI lokal
-      await onSaved();
+      if (onSaved) await onSaved();
       onClose();
     } catch (err) {
       alert("Action failed!");
     } finally {
       setConfirmAction(null);
     }
-  };
-
-  const handleCalendarChange = (e) => {
-    const selectedDate = new Date(e.target.value);
-    if (!isNaN(selectedDate)) setKilledInput(formatToGmt7(selectedDate));
   };
 
   return (
@@ -103,8 +102,8 @@ export default function BossModal({ boss, onClose, onSaved }) {
             <AnimatePresence>
               {confirmAction && (
                 <motion.div initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }} className="absolute inset-0 bg-black z-50 flex flex-col items-center justify-center p-6 text-center">
-                  <div className="text-red-600 font-Bold mb-1 uppercase tracking-tighter text-lg">Confirm Time?</div>
-                  <p className="text-zinc-600 text-[9px] uppercase tracking-widest mb-8">System will Update Spawn Time</p>
+                  <div className="text-red-600 font-Bold mb-1 uppercase tracking-tighter text-lg">Confirm?</div>
+                  <p className="text-zinc-600 text-[9px] uppercase tracking-widest mb-8">Saving manual timestamp update</p>
                   <div className="flex gap-4 w-full">
                     <button onClick={() => setConfirmAction(null)} className="flex-1 py-3 border border-zinc-800 rounded-lg text-zinc-500 font-bold text-[10px] uppercase hover:bg-zinc-900">CANCEL</button>
                     <button onClick={executeAction} className="flex-1 py-3 bg-green-700 rounded-lg text-white font-black text-[10px] uppercase shadow-lg shadow-green-900/40 hover:bg-green-500">UPDATE</button>
@@ -125,16 +124,57 @@ export default function BossModal({ boss, onClose, onSaved }) {
 
             <div className="mt-2 mb-6 h-[2px] w-full bg-gradient-to-r from-transparent via-red-500 to-transparent opacity-30" />
 
-            <div className="mb-4">
-              <label className="text-[9px] text-center text-zinc-600 uppercase tracking-[0.2em] mb-2 block font-black">Manual Timestamp Entry</label>
-              <div className="flex gap-2">
-                <div className="relative flex-1">
-                  <input value={killedInput} onChange={(e) => setKilledInput(e.target.value)} placeholder="DD Mmm YYYY HH:MM:SS" className="w-full bg-black border border-zinc-900 rounded-lg px-3 py-3 text-[11px] text-white focus:border-red-800 outline-none transition font-mono pr-9" />
-                  <button type="button" onClick={() => datetimeRef.current.showPicker()} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-700 hover:text-red-600"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" /></svg></button>
-                </div>
-                <button onClick={() => setConfirmAction('save')} className="bg-red-700 hover:bg-red-600 text-white font-black px-5 py-3 rounded-lg transition uppercase tracking-widest text-[9px] shadow-lg shadow-red-900/20">Save Time</button>
+            <div className="mb-2">
+              <div className="flex justify-between items-end mb-2">
+                <label className="text-[9px] text-zinc-500 uppercase tracking-[0.2em] font-bold">Manual Killed Time Input</label>
+                {!isEdited && (
+                  <span className="text-[7px] text-zinc-700 uppercase animate-pulse">Edit time to enable save</span>
+                )}
               </div>
-              <input ref={datetimeRef} type="datetime-local" className="absolute opacity-0 pointer-events-none" onChange={handleCalendarChange} />
+              
+              <div className="grid grid-cols-[1fr_auto_80px] gap-2 items-center">
+                <input 
+                  type="date"
+                  value={manualDate}
+                  onChange={(e) => setManualDate(e.target.value)}
+                  className="w-full bg-black border border-zinc-900 rounded-lg px-2 py-3 text-[11px] text-white focus:border-red-800 outline-none transition font-mono accent-red-600"
+                />
+
+                <input 
+                  type="time"
+                  value={manualTime}
+                  onChange={(e) => setManualTime(e.target.value)}
+                  className="w-[100px] bg-black border border-zinc-900 rounded-lg px-2 py-3 text-[11px] text-white focus:border-red-800 outline-none transition font-mono accent-red-600"
+                />
+
+                <button 
+                  onClick={() => setConfirmAction('save')} 
+                  disabled={!isEdited} // 🔥 TOMBOL DISABLED JIKA BELUM DIEDIT
+                  className={`font-black h-full px-3 rounded-lg transition uppercase tracking-widest text-[9px] shadow-lg ${
+                    isEdited 
+                    ? "bg-red-700 hover:bg-red-600 text-white shadow-red-900/20" 
+                    : "bg-zinc-900 text-zinc-700 cursor-not-allowed opacity-50"
+                  }`}
+                >
+                  Save
+                </button>
+              </div>
+
+              {/* Preview Hasil */}
+              <div className="mt-3 min-h-[35px]">
+                <AnimatePresence>
+                  {isEdited && killedInput && (
+                    <motion.div 
+                      initial={{ opacity: 0, y: -5 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="py-2 px-3 bg-zinc-950 border border-zinc-900 rounded-md text-center"
+                    >
+                       <span className="text-[9px] text-zinc-600 uppercase tracking-widest mr-2">New Target:</span>
+                       <span className="text-[10px] text-red-500 font-mono font-bold tracking-tight">{killedInput}</span>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
             </div>
           </motion.div>
         </motion.div>

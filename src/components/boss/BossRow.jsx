@@ -79,10 +79,10 @@ export default function BossRow({ boss, onSelect }) {
 
       {/* Kolom 2: Waktu (Fleksibel) */}
       <div className="text-right flex flex-col justify-center min-w-0 overflow-hidden">
-        <div className="text-[11px] sm:text-sm md:text-base font-bold text-white font-sans tracking-wider whitespace-nowrap">
+        <div className="text-[11px] sm:text-sm md:text-base font-semibold text-zinc-300 font-sans tracking-wider whitespace-nowrap">
           {formatOnlyTime(boss.spawn)}
         </div>
-        <div className="text-[9px] sm:text-[10px] text-zinc-500 font-bold tracking-tighter whitespace-nowrap opacity-80">
+        <div className="text-[9px] sm:text-[10px] text-zinc-500 font-semibold tracking-tighter whitespace-nowrap opacity-90">
           Kill: {formatOnlyTime(boss.killed)}
         </div>
       </div>
@@ -91,12 +91,12 @@ export default function BossRow({ boss, onSelect }) {
       <div className="flex justify-end items-center gap-2 sm:gap-1 relative whitespace-nowrap">
         <span className={`
           ${isSpawned 
-            ? 'text-red-600 animate-pulse drop-shadow-[0_0_10px_rgba(220,38,38,0.8)] font-black' 
+            ? 'text-red-600 animate-pulse drop-shadow-[0_0_10px_rgba(220,38,38,0.8)] font-bold' 
             : isUrgent 
               ? 'text-red-500 animate-pulse' 
-              : 'text-zinc-300'
+              : 'text-white'
           } 
-          text-[12px] sm:text-sm md:text-xl font-mono tracking-tighter transition-all
+          text-[12px] sm:text-sm md:text-xl font-sans tracking-tighter transition-all
         `}>
           {label}
         </span>

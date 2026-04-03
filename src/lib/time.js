@@ -1,42 +1,33 @@
 export function getCountdown(spawnTime) {
-  // 1. Validasi Awal
-  if (!spawnTime || spawnTime === "--:--:--" || spawnTime === "UNKNOWN") {
+  // 1. Validasi Awal (Menangani data kosong atau format --:--:--)
+  if (!spawnTime || spawnTime === "--:--:--" || spawnTime === "UNKNOWN" || spawnTime === "NULL") {
     return { label: "UNKNOWN", seconds: 0 };
   }
 
   const now = new Date();
   let targetDate;
 
-  // 2. Deteksi Tipe Input
+  // 2. Konversi input ke objek Date
   if (spawnTime instanceof Date) {
-    // Jika input sudah berupa objek Date
     targetDate = spawnTime;
-  } else if (typeof spawnTime === "string") {
-    if (spawnTime.includes(" ")) {
-      // Jika format tanggal lengkap: "01 Apr 2026 14:00:00"
-      targetDate = new Date(spawnTime);
-    } else {
-      // Jika format jam lama: "HH:mm:ss"
-      const parts = spawnTime.split(":");
-      if (parts.length !== 3) return { label: "INVALID", seconds: 0 };
-
-      const [h, m, s] = parts.map(Number);
-      targetDate = new Date();
-      targetDate.setHours(h, m, s, 0);
-
-      // Logic lama: Jika jam sudah lewat, asumsikan besok 
-      // (hanya berlaku untuk input yang tidak punya tanggal)
-      if (targetDate < now) targetDate.setDate(targetDate.getDate() + 1);
-    }
+  } else {
+    // Gunakan regex atau replace jika sewaktu-waktu format dari DB sedikit berbeda
+    // Safari kadang rewel dengan format "04 Apr 2026", kita pastikan formatnya standar
+    targetDate = new Date(spawnTime);
   }
 
-  // 3. Hitung Selisih (Selisih milidetik diubah ke detik)
+  // 3. Validasi apakah objek Date valid
+  if (isNaN(targetDate.getTime())) {
+    return { label: "INVALID", seconds: 0 };
+  }
+
+  // 4. Hitung Selisih
   const diff = Math.floor((targetDate - now) / 1000);
 
   // Jika waktu target sudah terlewati
-  if (diff <= 0) return { label: "SPAWNED", seconds: 0 };
+  if (diff <= 0) return { label: "SPAWNED", seconds: diff };
 
-  // 4. Kalkulasi Jam, Menit, Detik untuk Label
+  // 5. Kalkulasi Label (HHh MMm SSs)
   const hours = Math.floor(diff / 3600);
   const minutes = Math.floor((diff % 3600) / 60);
   const seconds = diff % 60;

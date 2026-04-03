@@ -190,7 +190,10 @@ export default function Header() {
       </div>
 
       <TableHeader />
-      <AddBossModal isOpen={isAddOpen} onClose={() => setIsAddOpen(false)} />
+      <AddBossModal 
+        isOpen={isAddOpen} 
+        onClose={() => setIsAddOpen(false)} 
+      />
     </header>
   );
 }
