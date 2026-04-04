@@ -3,10 +3,11 @@
 import { useEffect, useState, useCallback } from "react";
 import { useSearchParams } from "next/navigation"; 
 import { AnimatePresence } from "framer-motion";
-import { pusherClient } from "@/lib/pusher"; // ✅ Gunakan client yang sudah kita buat di lib
+import { pusherClient } from "@/lib/pusher";
 import BossRow from "@/components/boss/BossRow";
 import BossModal from "@/components/boss/BossModal";
-import { fetchBosses } from "@/services/bossServices";
+import EditBossModal from "@/components/boss/EditBossModal"; // ✅ Import Modal Baru (Akan kita buat)
+import { fetchBosses, deleteBoss } from "@/services/bossServices"; // ✅ Tambah deleteBoss
 
 function sortBySpawn(bosses) {
   return [...bosses].sort((a, b) => {
@@ -22,7 +23,8 @@ function sortBySpawn(bosses) {
 
 export default function BossList() {
   const [bosses, setBosses] = useState([]);
-  const [selectedBoss, setSelectedBoss] = useState(null);
+  const [selectedBoss, setSelectedBoss] = useState(null); // Untuk Update Timer (💀)
+  const [editingBoss, setEditingBoss] = useState(null);   // ✅ Untuk Edit Detail (⋮)
   
   const searchParams = useSearchParams();
   const query = searchParams.get("q")?.toLowerCase() || "";
@@ -40,23 +42,27 @@ export default function BossList() {
     loadBosses();
   }, [loadBosses]);
 
-  // ✅ 2. EFFECT REAL-TIME: Lebih rapi & anti-memory leak
   useEffect(() => {
-    // Berlangganan ke channel
-    const channel = pusherClient.subscribe("boss-timer-k3");
-
-    // Tangkap event
-    channel.bind("boss-updated", () => {
-      console.log("⚡ Data update detected! Syncing with Neon...");
+    const channel = pusherClient?.subscribe("boss-timer-k3");
+    channel?.bind("boss-updated", () => {
       loadBosses(); 
     });
 
-    // Cleanup: Jangan biarkan koneksi menumpuk setiap kali render
     return () => {
-      channel.unbind("boss-updated");
-      pusherClient.unsubscribe("boss-timer-k3");
+      channel?.unbind("boss-updated");
+      pusherClient?.unsubscribe("boss-timer-k3");
     };
   }, [loadBosses]);
+
+  // ✅ FUNGSI DELETE
+  const handleDelete = async (name) => {
+    try {
+      await deleteBoss(name);
+      await loadBosses(); // Refresh list setelah hapus
+    } catch (err) {
+      alert("Failed to delete boss");
+    }
+  };
 
   const filteredBosses = bosses.filter((boss) =>
     boss.name.toLowerCase().includes(query)
@@ -70,7 +76,9 @@ export default function BossList() {
             <BossRow
               key={boss.id}
               boss={boss}
-              onSelect={setSelectedBoss}
+              onSelect={setSelectedBoss} // Klik Tengkorak
+              onEdit={setEditingBoss}     // ✅ Klik Edit di Titik 3
+              onDelete={handleDelete}    // ✅ Klik Delete di Titik 3
             />
           ))
         ) : (
@@ -80,9 +88,17 @@ export default function BossList() {
         )}
       </AnimatePresence>
 
+      {/* MODAL 1: Update Timer (Tengkorak) */}
       <BossModal
         boss={selectedBoss}
         onClose={() => setSelectedBoss(null)}
+        onSaved={loadBosses}
+      />
+
+      {/* ✅ MODAL 2: Edit Detail Boss (Titik 3) */}
+      <EditBossModal
+        boss={editingBoss}
+        onClose={() => setEditingBoss(null)}
         onSaved={loadBosses}
       />
     </div>

@@ -1,8 +1,14 @@
-import { saveBoss, getAllBosses } from "@/repositories/bossRepository";
-import { pusherServer } from "@/lib/pusher"; // ✅ Tambahkan import ini
+import { 
+  saveBoss, 
+  getAllBosses, 
+  updateBossDetail, 
+  deleteBoss 
+} from "@/repositories/bossRepository";
+import { pusherServer } from "@/lib/pusher";
 
 export const dynamic = "force-dynamic";
 
+// 1. AMBIL SEMUA DATA (GET)
 export async function GET() {
   try {
     const bosses = await getAllBosses();
@@ -12,19 +18,53 @@ export async function GET() {
   }
 }
 
+// 2. UPDATE TIMER / TENGKORAK (POST)
 export async function POST(req) {
   try {
     const body = await req.json();
     if (!body.name) return Response.json({ error: "Name required" }, { status: 400 });
 
-    // 1. Simpan ke Database
     await saveBoss(body);
 
-    // 2. ✅ PICU PUSHER: Beritahu semua user di channel "boss-timer-k3"
-    // Kita kirim event bernama "boss-updated"
-    await pusherServer.trigger("boss-timer-k3", "boss-updated", {
-      message: "Data updated",
-    });
+    // Broadcast update
+    await pusherServer.trigger("boss-timer-k3", "boss-updated", { message: "Timer updated" });
+
+    return Response.json({ success: true });
+  } catch (error) {
+    return Response.json({ error: error.message }, { status: 500 });
+  }
+}
+
+// 3. ✅ EDIT DETAIL NAMA/INTERVAL/RARITY (PATCH)
+export async function PATCH(req) {
+  try {
+    const body = await req.json();
+    if (!body.id) return Response.json({ error: "ID required" }, { status: 400 });
+
+    await updateBossDetail(body);
+
+    // Broadcast ke semua user bahwa ada perubahan detail boss
+    await pusherServer.trigger("boss-timer-k3", "boss-updated", { message: "Detail updated" });
+
+    return Response.json({ success: true });
+  } catch (error) {
+    return Response.json({ error: error.message }, { status: 500 });
+  }
+}
+
+// 4. ✅ HAPUS BOSS (DELETE)
+export async function DELETE(req) {
+  try {
+    // Mengambil ID dari query string (misal: /api/boss?id=123)
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get("id");
+
+    if (!id) return Response.json({ error: "ID required" }, { status: 400 });
+
+    await deleteBoss(id);
+
+    // Broadcast ke semua user bahwa satu boss telah dihapus
+    await pusherServer.trigger("boss-timer-k3", "boss-updated", { message: "Boss deleted" });
 
     return Response.json({ success: true });
   } catch (error) {

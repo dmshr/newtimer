@@ -10,7 +10,8 @@ const rowVariants = {
   visible: { opacity: 1, y: 0 },
 };
 
-export default function BossRow({ boss, onSelect }) {
+// ✅ TAMBAHKAN PROP: onEdit dan onDelete
+export default function BossRow({ boss, onSelect, onEdit, onDelete }) {
   const [time, setTime] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const { playAlert } = useSound();
@@ -22,7 +23,6 @@ export default function BossRow({ boss, onSelect }) {
     return parts[parts.length - 1];
   };
 
-  // ✅ EFFECT 1: Update Timer setiap detik
   useEffect(() => {
     const update = () => {
       const targetDate = boss.spawn && boss.spawn.includes(" ") 
@@ -37,14 +37,12 @@ export default function BossRow({ boss, onSelect }) {
     return () => clearInterval(interval);
   }, [boss.spawn]);
 
-  // ✅ EFFECT 2: Trigger Sound Alert (Pengecekan setiap detik)
   useEffect(() => {
     if (time && time.seconds === 119 && !hasAlerted) {
       playAlert();
       setHasAlerted(true); 
     }
     
-    // Reset status alert jika waktu di-update kembali ke atas 2 menit
     if (time && time.seconds >= 120) {
       setHasAlerted(false);
     }
@@ -60,8 +58,17 @@ export default function BossRow({ boss, onSelect }) {
 
   const { label, seconds } = time;
   const isUrgent = seconds > 0 && seconds < 120;
-  // ✅ LOGIKA BARU: Cek jika statusnya SPAWNED
   const isSpawned = label === "SPAWNED";
+
+  // ✅ LOGIKA RARITY WARNA (Optional: Agar nama boss berwarna sesuai rarity)
+  const getRarityColor = (rarity) => {
+    switch (rarity?.toLowerCase()) {
+      case 'red': return 'text-red-500';
+      case 'purple': return 'text-purple-500';
+      case 'blue': return 'text-blue-400';
+      default: return 'text-zinc-100';
+    }
+  };
 
   return (
     <motion.div
@@ -70,14 +77,14 @@ export default function BossRow({ boss, onSelect }) {
       initial="hidden"
       animate="visible"
       transition={{ duration: 0.25 }}
-      className="grid grid-cols-[80px_1fr_130px] md:grid-cols-[140px_1fr_190px] gap-2 px-2 md:px-4 py-4 items-center border-b border-gray-800 font-mono"
+      className="grid grid-cols-[80px_1fr_130px] md:grid-cols-[140px_1fr_190px] gap-2 px-3 md:px-4 py-3 items-center border-b border-zinc-800 font-mono"
     >
-      {/* Kolom 1: Nama */}
-      <span className="font-semibold font-sans text-left tracking-wider text-[10px] sm:text-sm md:text-base overflow-visible">
+      {/* Kolom 1: Nama + warna rarity*/}
+      <span className={`font-semibold font-sans text-left tracking-wider text-[10px] sm:text-sm md:text-base overflow-visible ${getRarityColor(boss.rarity)}`}>
         {boss.name}
       </span>
 
-      {/* Kolom 2: Waktu (Fleksibel) */}
+      {/* Kolom 2: Waktu */}
       <div className="text-right flex flex-col justify-center min-w-0 overflow-hidden">
         <div className="text-[11px] sm:text-sm md:text-base font-semibold text-zinc-300 font-sans tracking-wider whitespace-nowrap">
           {formatOnlyTime(boss.spawn)}
@@ -94,21 +101,21 @@ export default function BossRow({ boss, onSelect }) {
             ? 'text-red-600 animate-pulse drop-shadow-[0_0_10px_rgba(220,38,38,0.8)] font-bold' 
             : isUrgent 
               ? 'text-red-500 animate-pulse' 
-              : 'text-white'
+              : 'text-zinc-200'
           } 
-          text-[12px] sm:text-sm md:text-xl font-sans tracking-tighter transition-all
+          text-[12px] font- font-bold sm:text-sm md:text-xl font-sans tracking-tighter transition-all
         `}>
           {label}
         </span>
 
         <motion.button
           whileHover={{ scale: 1.15 }}
-          whileTap={{ scale: 0.9 }}
+          whileTap={{ scale: 0.8 }}
           onClick={(e) => {
             e.stopPropagation();
             onSelect(boss);
           }}
-          className="text-lg sm:text-2xl filter drop-shadow-sm flex-shrink-0"
+          className="text-sm sm:text-lg filter drop-shadow-sm flex-shrink-0 opacity-80 hover:opacity-100 transition-opacity"
         >
           💀
         </motion.button>
@@ -118,26 +125,56 @@ export default function BossRow({ boss, onSelect }) {
             e.stopPropagation();
             setMenuOpen((prev) => !prev);
           }}
-          className="cursor-pointer text-zinc-700 hover:text-white text-lg sm:text-2xl px-1 flex-shrink-0"
+          className="cursor-pointer text-zinc-600 hover:text-white text-xl sm:text-2xl px-0.5 flex-shrink-0 font-black leading-none transition-colors"
         >
           ⋮
         </span>
 
         <AnimatePresence>
           {menuOpen && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              className="absolute right-0 top-10 bg-[#0b0b0b] border border-zinc-800 rounded-lg w-24 sm:w-28 shadow-2xl z-20 overflow-hidden"
-            >
-              <div className="px-3 py-2 hover:bg-zinc-900 cursor-pointer text-[9px] sm:text-[10px] uppercase font-bold text-zinc-400">
-                Edit
-              </div>
-              <div className="px-3 py-2 hover:bg-red-950/30 cursor-pointer text-red-900 text-[9px] sm:text-[10px] uppercase font-bold border-t border-zinc-900">
-                Delete
-              </div>
-            </motion.div>
+            <>
+              {/* 1.*/}
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setMenuOpen(false)} // Klik di mana saja di luar menu untuk menutup
+                className="fixed inset-0 z-10" // Menutupi seluruh layar
+              />
+
+              {/* 2. Menu Titik 3*/}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                className="absolute right-0 top-10 bg-[#0b0b0b] border border-zinc-800 rounded-lg w-24 sm:w-28 shadow-2xl z-20 overflow-hidden"
+              >
+                {/* Konten Edit & Delete */}
+                <div 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onEdit(boss);
+                    setMenuOpen(false);
+                  }}
+                  className="px-3 py-2 hover:bg-zinc-800 cursor-pointer text-[9px] sm:text-[10px] uppercase font-bold text-zinc-400"
+                >
+                  Edit
+                </div>
+
+                <div 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if(confirm(`Delete ${boss.name}?`)) {
+                      onDelete(boss.id);
+                    }
+                    setMenuOpen(false);
+                  }}
+                  className="px-3 py-2 hover:bg-red-950/30 cursor-pointer text-red-900 text-[9px] sm:text-[10px] uppercase font-bold border-t border-zinc-900"
+                >
+                  Delete
+                </div>
+              </motion.div>
+            </>
           )}
         </AnimatePresence>
       </div>
