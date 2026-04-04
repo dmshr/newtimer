@@ -12,7 +12,11 @@ function sortBySpawn(bosses) {
   return [...bosses].sort((a, b) => {
     if (!a.spawn || a.spawn === "--:--:--") return 1;
     if (!b.spawn || b.spawn === "--:--:--") return -1;
-    return a.spawn.localeCompare(b.spawn);
+
+    const timeA = new Date(a.spawn).getTime();
+    const timeB = new Date(b.spawn).getTime();
+
+    return timeA - timeB;
   });
 }
 
