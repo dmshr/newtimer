@@ -163,10 +163,8 @@ export default function BossRow({ boss, onSelect, onEdit, onDelete }) {
 
                 <div 
                   onClick={(e) => {
-                    e.stopPropagation();
-                    if(confirm(`Delete ${boss.name}?`)) {
-                      onDelete(boss.id);
-                    }
+                    e.stopPropagation(); 
+                    onDelete(boss);
                     setMenuOpen(false);
                   }}
                   className="px-3 py-2 hover:bg-red-950/30 cursor-pointer text-red-900 text-[9px] sm:text-[10px] uppercase font-bold border-t border-zinc-900"

@@ -6,25 +6,25 @@ import { AnimatePresence } from "framer-motion";
 import { pusherClient } from "@/lib/pusher";
 import BossRow from "@/components/boss/BossRow";
 import BossModal from "@/components/boss/BossModal";
-import EditBossModal from "@/components/boss/EditBossModal"; // ✅ Import Modal Baru (Akan kita buat)
-import { fetchBosses, deleteBoss } from "@/services/bossServices"; // ✅ Tambah deleteBoss
+import EditBossModal from "@/components/boss/EditBossModal";
+import DeleteBossModal from "@/components/boss/DeleteBossModal"; // ✅ Sudah Benar
+import { fetchBosses } from "@/services/bossServices"; 
 
 function sortBySpawn(bosses) {
   return [...bosses].sort((a, b) => {
     if (!a.spawn || a.spawn === "--:--:--") return 1;
     if (!b.spawn || b.spawn === "--:--:--") return -1;
-
     const timeA = new Date(a.spawn).getTime();
     const timeB = new Date(b.spawn).getTime();
-
     return timeA - timeB;
   });
 }
 
 export default function BossList() {
   const [bosses, setBosses] = useState([]);
-  const [selectedBoss, setSelectedBoss] = useState(null); // Untuk Update Timer (💀)
-  const [editingBoss, setEditingBoss] = useState(null);   // ✅ Untuk Edit Detail (⋮)
+  const [selectedBoss, setSelectedBoss] = useState(null); 
+  const [editingBoss, setEditingBoss] = useState(null);   
+  const [deletingBoss, setDeletingBoss] = useState(null); // ✅ State untuk Modal Hapus
   
   const searchParams = useSearchParams();
   const query = searchParams.get("q")?.toLowerCase() || "";
@@ -44,25 +44,12 @@ export default function BossList() {
 
   useEffect(() => {
     const channel = pusherClient?.subscribe("boss-timer-k3");
-    channel?.bind("boss-updated", () => {
-      loadBosses(); 
-    });
-
+    channel?.bind("boss-updated", () => { loadBosses(); });
     return () => {
       channel?.unbind("boss-updated");
       pusherClient?.unsubscribe("boss-timer-k3");
     };
   }, [loadBosses]);
-
-  // ✅ FUNGSI DELETE
-  const handleDelete = async (name) => {
-    try {
-      await deleteBoss(name);
-      await loadBosses(); // Refresh list setelah hapus
-    } catch (err) {
-      alert("Failed to delete boss");
-    }
-  };
 
   const filteredBosses = bosses.filter((boss) =>
     boss.name.toLowerCase().includes(query)
@@ -76,9 +63,11 @@ export default function BossList() {
             <BossRow
               key={boss.id}
               boss={boss}
-              onSelect={setSelectedBoss} // Klik Tengkorak
-              onEdit={setEditingBoss}     // ✅ Klik Edit di Titik 3
-              onDelete={handleDelete}    // ✅ Klik Delete di Titik 3
+              onSelect={setSelectedBoss}
+              onEdit={setEditingBoss}
+              // ✅ GANTI: Sekarang kirim setDeletingBoss agar modal muncul, 
+              // bukan menjalankan fungsi hapus langsung.
+              onDelete={setDeletingBoss} 
             />
           ))
         ) : (
@@ -88,17 +77,24 @@ export default function BossList() {
         )}
       </AnimatePresence>
 
-      {/* MODAL 1: Update Timer (Tengkorak) */}
+      {/* MODAL 1: Update Timer (💀) */}
       <BossModal
         boss={selectedBoss}
         onClose={() => setSelectedBoss(null)}
         onSaved={loadBosses}
       />
 
-      {/* ✅ MODAL 2: Edit Detail Boss (Titik 3) */}
+      {/* MODAL 2: Edit Detail Boss (⋮) */}
       <EditBossModal
         boss={editingBoss}
         onClose={() => setEditingBoss(null)}
+        onSaved={loadBosses}
+      />
+
+      {/* ✅ MODAL 3: Konfirmasi Hapus (Baru ditambahkan di sini) */}
+      <DeleteBossModal
+        boss={deletingBoss}
+        onClose={() => setDeletingBoss(null)}
         onSaved={loadBosses}
       />
     </div>

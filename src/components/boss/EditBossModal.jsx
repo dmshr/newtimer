@@ -47,8 +47,8 @@ export default function EditBossModal({ boss, onClose, onSaved }) {
             
             <button onClick={onClose} className="absolute top-4 right-4 text-zinc-500 hover:text-white transition">✕</button>
 
-            <h2 className="text-red-600 font-black tracking-widest uppercase mb-1 text-center">Edit Boss</h2>
-            <p className="text-center text-[10px] text-zinc-500 uppercase tracking-[0.3em] mb-6 font-bold">Configure Database Entry</p>
+            <h2 className="text-[18px] text-red-600 font-black tracking-widest uppercase mb-1 text-center">Edit Boss</h2>
+            <p className="text-center text-[10px] text-zinc-500 uppercase tracking-[0.3em] mb-4 font-bold"></p>
 
             <div className="space-y-4">
               {/* 1. Edit Name */}
@@ -58,18 +58,18 @@ export default function EditBossModal({ boss, onClose, onSaved }) {
                   type="text" 
                   value={name} 
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full bg-black border border-zinc-900 rounded-lg px-3 py-3 text-sm text-white focus:border-red-800 outline-none transition font-bold"
+                  className="w-full bg-black border border-zinc-900 rounded-lg px-3 py-1 text-sm text-white focus:border-red-800 outline-none transition font-semibold"
                 />
               </div>
 
               {/* 2. Edit Interval */}
               <div>
-                <label className="text-[9px] text-zinc-500 uppercase tracking-widest font-bold mb-1 block ml-1">Interval (Hours)</label>
+                <label className="text-[9px] text-zinc-500 tracking-widest uppercase font-bold mb-1 block ml-1">Interval (Hours)</label>
                 <input 
                   type="number" 
                   value={interval} 
                   onChange={(e) => setInterval(e.target.value)}
-                  className="w-full bg-black border border-zinc-900 rounded-lg px-3 py-3 text-sm text-white focus:border-red-800 outline-none transition font-mono font-bold"
+                  className="w-full bg-black border border-zinc-900 rounded-lg px-3 py-1 text-sm text-white focus:border-red-800 outline-none transition font-mono font-bold"
                 />
               </div>
 
@@ -79,7 +79,7 @@ export default function EditBossModal({ boss, onClose, onSaved }) {
                 <select 
                   value={rarity} 
                   onChange={(e) => setRarity(e.target.value)}
-                  className="w-full bg-black border border-zinc-900 rounded-lg px-3 py-1 text-sm text-white focus:border-red-800 outline-none transition font-bold appearance-none cursor-pointer"
+                  className="w-full bg-black border border-zinc-900 rounded-lg px-3 py-1 text-sm text-white focus:border-red-800 outline-none transition font-semibold appearance-none cursor-pointer"
                 >
                   <option value="Blue" className="text-blue-400">BLUE</option>
                   <option value="Red" className="text-red-500">RED</option>
@@ -91,7 +91,7 @@ export default function EditBossModal({ boss, onClose, onSaved }) {
             <button 
               onClick={handleSave}
               disabled={isLoading}
-              className="w-full mt-8 bg-red-700 hover:bg-red-600 text-white font-black py-3 rounded-lg text-[11px] uppercase tracking-widest shadow-lg shadow-red-900/20 transition-all disabled:opacity-50"
+              className="w-full mt-4 bg-red-800 hover:bg-red-700 text-white font-black py-2 rounded-lg text-[11px] uppercase tracking-widest shadow-lg shadow-red-900/20 transition-all disabled:opacity-50"
             >
               {isLoading ? "UPDATING..." : "SAVE CHANGES"}
             </button>
