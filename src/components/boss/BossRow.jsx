@@ -63,10 +63,12 @@ export default function BossRow({ boss, onSelect, onEdit, onDelete }) {
   // ✅ LOGIKA RARITY WARNA (Optional: Agar nama boss berwarna sesuai rarity)
   const getRarityColor = (rarity) => {
     switch (rarity?.toLowerCase()) {
-      case 'red': return 'text-red-500';
-      case 'purple': return 'text-purple-500';
-      case 'blue': return 'text-blue-400';
-      default: return 'text-zinc-100';
+      case 'invasi': case 'orange': return 'text-orange-500';
+      case 'legendary': case 'purple': return 'text-purple-500';
+      case 'epic': case 'red': return 'text-red-500 drop-shadow-[0_0_5px_rgba(239,68,68,0.5)]';
+      case 'rare': case 'blue': return 'text-blue-400';
+      case 'world': case 'white': return 'text-white';
+      default: return 'text-zinc-300'; // Common / Default
     }
   };
 
