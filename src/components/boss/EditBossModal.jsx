@@ -18,10 +18,9 @@ export default function EditBossModal({ boss, onClose, onSaved }) {
     }
   }, [boss]);
 
-  // Helper Warna sesuai BossRow.jsx
   const getRarityClass = (variant) => {
     switch (variant?.toLowerCase()) {
-      case 'invasi': return 'text-orange-500 border-orange-900/50 shadow-[0_0_10px_rgba(249,115,22,0.1)]';
+      case 'invasi': case 'invasion': return 'text-orange-500 border-orange-900/50 shadow-[0_0_10px_rgba(249,115,22,0.1)]';
       case 'legendary': return 'text-purple-500 border-purple-900/50 shadow-[0_0_10px_rgba(168,85,247,0.1)]';
       case 'epic': return 'text-red-500 border-red-900/50 drop-shadow-[0_0_5px_rgba(239,68,68,0.5)]';
       case 'rare': return 'text-blue-400 border-blue-900/50 shadow-[0_0_10px_rgba(59,130,246,0.1)]';

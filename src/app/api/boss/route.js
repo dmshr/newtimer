@@ -26,7 +26,7 @@ export async function POST(req) {
 
     await saveBoss(body);
 
-    // Broadcast update
+    // Broadcast update ke semua user
     await pusherServer.trigger("boss-timer-k3", "boss-updated", { message: "Timer updated" });
 
     return Response.json({ success: true });
@@ -35,15 +35,13 @@ export async function POST(req) {
   }
 }
 
-// 3. ✅ EDIT DETAIL NAMA/INTERVAL/RARITY (PATCH)
+// 3. EDIT DETAIL (PATCH)
 export async function PATCH(req) {
   try {
     const body = await req.json();
     if (!body.id) return Response.json({ error: "ID required" }, { status: 400 });
 
     await updateBossDetail(body);
-
-    // Broadcast ke semua user bahwa ada perubahan detail boss
     await pusherServer.trigger("boss-timer-k3", "boss-updated", { message: "Detail updated" });
 
     return Response.json({ success: true });
@@ -52,18 +50,15 @@ export async function PATCH(req) {
   }
 }
 
-// 4. ✅ HAPUS BOSS (DELETE)
+// 4. HAPUS BOSS (DELETE)
 export async function DELETE(req) {
   try {
-    // Mengambil ID dari query string (misal: /api/boss?id=123)
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");
 
     if (!id) return Response.json({ error: "ID required" }, { status: 400 });
 
     await deleteBoss(id);
-
-    // Broadcast ke semua user bahwa satu boss telah dihapus
     await pusherServer.trigger("boss-timer-k3", "boss-updated", { message: "Boss deleted" });
 
     return Response.json({ success: true });

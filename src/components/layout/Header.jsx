@@ -6,29 +6,29 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useSound } from "@/context/SoundContext";
 import TableHeader from "@/components/boss/TableHeader";
 import AddBossModal from "@/components/boss/AddBossModal";
+import InvasionControl from "@/components/boss/InvasionControl"; // ✅ Import Komponen Baru
 
 export default function Header() {
   const [showSearch, setShowSearch] = useState(false);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [showVolume, setShowVolume] = useState(false);
-  const [isAlertActive, setIsAlertActive] = useState(false);
 
   const { volume, setVolume, unlockAudio } = useSound();
 
   const searchRef = useRef(null);
   const toggleRef = useRef(null);
   const volumeRef = useRef(null);
-  const inputRef = useRef(null); // Ref tambahan untuk auto-focus
+  const inputRef = useRef(null);
 
   const router = useRouter();
   const searchParams = useSearchParams();
   const queryValue = searchParams.get("q") || "";
 
-  // Fitur 1: Shortcut Ctrl + F
+  // Shortcut Ctrl+F
   useEffect(() => {
     const handleKeyDown = (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key === "f") {
-        e.preventDefault(); // Mencegah search bawaan browser
+        e.preventDefault();
         if (!showSearch) {
           handleToggleSearch();
         } else {
@@ -40,10 +40,8 @@ export default function Header() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [showSearch]);
 
-  // Fitur 2: Reset input saat bar dimunculkan kembali
   const handleToggleSearch = () => {
     if (!showSearch) {
-      // Jika akan membuka: Bersihkan query di URL agar input kosong
       const params = new URLSearchParams(searchParams);
       params.delete("q");
       router.replace(`?${params.toString()}`, { scroll: false });
@@ -51,13 +49,13 @@ export default function Header() {
     setShowSearch((p) => !p);
   };
 
-  // Auto-focus saat bar muncul
   useEffect(() => {
     if (showSearch) {
       setTimeout(() => inputRef.current?.focus(), 100);
     }
   }, [showSearch]);
 
+  // Update variabel CSS untuk padding main content
   useEffect(() => {
     const height = showSearch ? "150px" : "110px";
     document.documentElement.style.setProperty("--header-height", height);
@@ -93,18 +91,11 @@ export default function Header() {
       <div className="max-w-5xl mx-auto w-full">
         <div className="flex items-center justify-between px-2 md:px-4 py-3 min-h-[60px] gap-2">
           
+          {/* SISI KIRI: Invasion & Search/Add */}
           <div className="flex items-center gap-1 sm:gap-3 flex-shrink-0">
-            <span 
-              onClick={() => setIsAlertActive(!isAlertActive)}
-              className={`text-[8px] sm:text-[10px] cursor-pointer transition-all uppercase tracking-wider font-bold px-1.5 py-0.5 rounded border ${
-                isAlertActive ? 'bg-red-600 text-white border-red-500 animate-pulse' : 'text-zinc-500 border-zinc-800 hover:text-white'
-              }`}
-            >
-              Invasion
-            </span>
+            <InvasionControl /> {/* ✅ Logika Invasion sekarang ada di sini */}
             
             <div className="flex items-center gap-1">
-              {/* Gunakan handleToggleSearch di sini */}
               <button ref={toggleRef} onClick={handleToggleSearch} className={`hover:text-white transition-all p-1 ${showSearch ? 'text-red-600' : 'text-zinc-500'}`}>
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 sm:w-5 sm:h-5">
                   <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
@@ -119,6 +110,7 @@ export default function Header() {
             </div>
           </div>
 
+          {/* TENGAH: Logo/Branding */}
           <div className="flex-1 text-center px-1 min-w-0">
             <div className="text-green-500 text-[16px] sm:text-[20px] font-mono tracking-[0.1em] uppercase leading-none font-bold truncate">
               Kain 3
@@ -128,6 +120,7 @@ export default function Header() {
             </div>
           </div>
 
+          {/* SISI KANAN: Volume & Tools */}
           <div className="flex items-center gap-1 sm:gap-3 flex-shrink-0 relative">
             <div className="relative" ref={volumeRef}>
               <button onClick={() => setShowVolume(!showVolume)} className={`p-1 transition-colors ${showVolume ? 'text-white' : 'text-zinc-500 hover:text-white'}`}>
@@ -162,7 +155,7 @@ export default function Header() {
           </div>
         </div>
 
-        {/* Perbaikan Animasi: Gunakan opacity dan ease-in-out */}
+        {/* Search Bar Popover */}
         <AnimatePresence>
           {showSearch && (
             <motion.div 
@@ -190,10 +183,7 @@ export default function Header() {
       </div>
 
       <TableHeader />
-      <AddBossModal 
-        isOpen={isAddOpen} 
-        onClose={() => setIsAddOpen(false)} 
-      />
+      <AddBossModal isOpen={isAddOpen} onClose={() => setIsAddOpen(false)} />
     </header>
   );
 }

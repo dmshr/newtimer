@@ -3,17 +3,20 @@
 @tailwind utilities;
 
 :root {
+  /* Nilai awal, akan diubah secara dinamis oleh Header.jsx */
   --header-height: 110px;
 }
 
 body {
   background: #0b0b0b;
   color: white;
-  /* Font Inter sangat bersih dan mudah dibaca */
+  /* Font Inter dari layout.js */
   font-family: var(--font-inter), ui-sans-serif, system-ui;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Scrollbar tetap tipis agar tidak mengganggu pandangan */
+/* Scrollbar tipis ala Dark Mode */
 ::-webkit-scrollbar {
   width: 5px;
 }
@@ -23,12 +26,30 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #7f1d1d;
+  background: #7f1d1d; /* Warna merah gelap sesuai tema */
   border-radius: 10px;
 }
 
-/* Memastikan angka timer tetap sejajar (monospaced) */
+/* Helper Class untuk Timer agar tidak goyang saat angka berubah */
 .font-timer {
   font-family: var(--font-mono), monospace;
   font-variant-numeric: tabular-nums;
+}
+
+/* ✅ Animasi Tambahan: Pulse Merah Kustom (Opsional) */
+/* Jika kamu ingin efek berdenyut yang lebih "tegas" untuk tombol Invasion */
+@keyframes pulse-red-custom {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(0.98);
+    box-shadow: 0 0 12px rgba(220, 38, 38, 0.5);
+  }
+}
+
+.animate-invasion-pulse {
+  animation: pulse-red-custom 2s infinite ease-in-out;
 }

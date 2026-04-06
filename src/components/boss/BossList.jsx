@@ -7,8 +7,9 @@ import { pusherClient } from "@/lib/pusher";
 import BossRow from "@/components/boss/BossRow";
 import BossModal from "@/components/boss/BossModal";
 import EditBossModal from "@/components/boss/EditBossModal";
-import DeleteBossModal from "@/components/boss/DeleteBossModal"; // ✅ Sudah Benar
+import DeleteBossModal from "@/components/boss/DeleteBossModal";
 import { fetchBosses } from "@/services/bossServices"; 
+import { useInvasion } from "@/context/InvasionContext";
 
 function sortBySpawn(bosses) {
   return [...bosses].sort((a, b) => {
@@ -24,8 +25,9 @@ export default function BossList() {
   const [bosses, setBosses] = useState([]);
   const [selectedBoss, setSelectedBoss] = useState(null); 
   const [editingBoss, setEditingBoss] = useState(null);   
-  const [deletingBoss, setDeletingBoss] = useState(null); // ✅ State untuk Modal Hapus
+  const [deletingBoss, setDeletingBoss] = useState(null);
   
+  const { showInvasion, resetTrigger } = useInvasion();
   const searchParams = useSearchParams();
   const query = searchParams.get("q")?.toLowerCase() || "";
 
@@ -39,6 +41,17 @@ export default function BossList() {
   }, []);
 
   useEffect(() => {
+    if (resetTrigger > 0) {
+      setBosses((prevBosses) =>
+        prevBosses.map((boss) => {
+          const r = boss.rarity?.toLowerCase();
+          return (r === "invasion" || r === "invasi") ? { ...boss, spawn: "--:--:--", killed: "--:--:--" } : boss;
+        })
+      );
+    }
+  }, [resetTrigger]);
+
+  useEffect(() => {
     loadBosses();
   }, [loadBosses]);
 
@@ -46,57 +59,44 @@ export default function BossList() {
     const channel = pusherClient?.subscribe("boss-timer-k3");
     channel?.bind("boss-updated", () => { loadBosses(); });
     return () => {
-      channel?.unbind("boss-updated");
       pusherClient?.unsubscribe("boss-timer-k3");
     };
   }, [loadBosses]);
 
-  const filteredBosses = bosses.filter((boss) =>
-    boss.name.toLowerCase().includes(query)
-  );
+  const filteredBosses = bosses.filter((boss) => {
+    const matchesSearch = boss.name.toLowerCase().includes(query);
+    const r = boss.rarity?.toLowerCase();
+    const isVisibleInvasion = (r === "invasion" || r === "invasi") ? showInvasion : true;
+    return matchesSearch && isVisibleInvasion;
+  });
 
   return (
-    <div className="w-full bg-[#0f0f0f] rounded-2xl mt-4 overflow-hidden min-h-[200px]">
-      <AnimatePresence mode="popLayout">
-        {filteredBosses.length > 0 ? (
-          filteredBosses.map((boss) => (
-            <BossRow
-              key={boss.id}
-              boss={boss}
-              onSelect={setSelectedBoss}
-              onEdit={setEditingBoss}
-              // ✅ GANTI: Sekarang kirim setDeletingBoss agar modal muncul, 
-              // bukan menjalankan fungsi hapus langsung.
-              onDelete={setDeletingBoss} 
-            />
-          ))
-        ) : (
-          <div className="py-20 text-center text-gray-500 italic">
-            {bosses.length === 0 ? "Loading data..." : `No boss found for "${query}"`}
-          </div>
-        )}
-      </AnimatePresence>
+    <div className="flex flex-col gap-4">
+      {/* ✅ KEMBALIKAN BG & ROUNDED SESUAI GAYA ASLI */}
+      <div className="w-full bg-[#0f0f0f] rounded-2xl overflow-hidden min-h-[200px]">
+        <AnimatePresence mode="popLayout">
+          {filteredBosses.length > 0 ? (
+            filteredBosses.map((boss) => (
+              <BossRow
+                key={boss.id}
+                boss={boss}
+                onSelect={setSelectedBoss}
+                onEdit={setEditingBoss}
+                onDelete={setDeletingBoss}
+                animateInvasion={showInvasion} 
+              />
+            ))
+          ) : (
+            <div className="py-20 text-center text-gray-500 italic">
+              {bosses.length === 0 ? "Loading data..." : `No boss found for "${query}"`}
+            </div>
+          )}
+        </AnimatePresence>
 
-      {/* MODAL 1: Update Timer (💀) */}
-      <BossModal
-        boss={selectedBoss}
-        onClose={() => setSelectedBoss(null)}
-        onSaved={loadBosses}
-      />
-
-      {/* MODAL 2: Edit Detail Boss (⋮) */}
-      <EditBossModal
-        boss={editingBoss}
-        onClose={() => setEditingBoss(null)}
-        onSaved={loadBosses}
-      />
-
-      {/* ✅ MODAL 3: Konfirmasi Hapus (Baru ditambahkan di sini) */}
-      <DeleteBossModal
-        boss={deletingBoss}
-        onClose={() => setDeletingBoss(null)}
-        onSaved={loadBosses}
-      />
+        <BossModal boss={selectedBoss} onClose={() => setSelectedBoss(null)} onSaved={loadBosses} />
+        <EditBossModal boss={editingBoss} onClose={() => setEditingBoss(null)} onSaved={loadBosses} />
+        <DeleteBossModal boss={deletingBoss} onClose={() => setDeletingBoss(null)} onSaved={loadBosses} />
+      </div>
     </div>
   );
 }

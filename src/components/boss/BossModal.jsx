@@ -64,11 +64,11 @@ export default function BossModal({ boss, onClose, onSaved }) {
 
   const executeAction = async () => {
     try {
-      // ✅ PERBAIKAN: Sertakan rarity agar tidak ter-reset ke default
+      // ✅ Payload membawa semua atribut asli agar tidak tertimpa default di DB
       let payload = { 
         name: boss.name,
         interval_hours: boss.interval_hours,
-        rarity: boss.rarity // <-- Tambahkan baris ini
+        rarity: boss.rarity 
       };
 
       if (confirmAction === 'justnow') {
@@ -101,11 +101,11 @@ export default function BossModal({ boss, onClose, onSaved }) {
             <AnimatePresence>
               {confirmAction && (
                 <motion.div initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }} className="absolute inset-0 bg-black z-50 flex flex-col items-center justify-center p-6 text-center">
-                  <div className="text-red-600 font-Bold mb-1 uppercase tracking-tighter text-lg">Confirm?</div>
+                  <div className="text-red-600 font-bold mb-1 uppercase tracking-tighter text-lg">Confirm?</div>
                   <p className="text-zinc-600 text-[9px] uppercase tracking-widest mb-8">Saving update for {boss.name}</p>
                   <div className="flex gap-4 w-full">
-                    <button onClick={() => setConfirmAction(null)} className="flex-1 py-3 border border-zinc-800 rounded-lg text-zinc-500 font-bold text-[10px] uppercase hover:bg-zinc-900">CANCEL</button>
-                    <button onClick={executeAction} className="flex-1 py-3 bg-green-700 rounded-lg text-white font-black text-[10px] uppercase shadow-lg shadow-green-900/40 hover:bg-green-500">UPDATE</button>
+                    <button onClick={() => setConfirmAction(null)} className="flex-1 py-3 border border-zinc-800 rounded-lg text-zinc-500 font-bold text-[10px] uppercase hover:bg-zinc-900 transition-colors">CANCEL</button>
+                    <button onClick={executeAction} className="flex-1 py-3 bg-green-700 rounded-lg text-white font-black text-[10px] uppercase shadow-lg shadow-green-900/40 hover:bg-green-600 transition-colors">UPDATE</button>
                   </div>
                 </motion.div>
               )}
@@ -124,12 +124,7 @@ export default function BossModal({ boss, onClose, onSaved }) {
             <div className="mt-2 mb-6 h-[2px] w-full bg-gradient-to-r from-transparent via-red-500 to-transparent opacity-30" />
 
             <div className="mb-2">
-              <div className="flex justify-between items-end mb-2">
-                <label className="text-[9px] text-zinc-500 uppercase tracking-[0.2em] font-bold">Manual Killed Time Input</label>
-                {!isEdited && (
-                  <span className="text-[7px] text-zinc-700 uppercase animate-pulse">Edit time to enable save</span>
-                )}
-              </div>
+              <label className="text-[9px] text-zinc-500 uppercase tracking-[0.2em] font-bold block mb-2">Manual Killed Time Input</label>
               
               <div className="grid grid-cols-[1fr_auto_80px] gap-2 items-center">
                 <input 
@@ -162,11 +157,7 @@ export default function BossModal({ boss, onClose, onSaved }) {
               <div className="mt-3 min-h-[35px]">
                 <AnimatePresence>
                   {isEdited && killedInput && (
-                    <motion.div 
-                      initial={{ opacity: 0, y: -5 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="py-2 px-3 bg-zinc-950 border border-zinc-900 rounded-md text-center"
-                    >
+                    <motion.div initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} className="py-2 px-3 bg-zinc-950 border border-zinc-900 rounded-md text-center">
                        <span className="text-[9px] text-zinc-600 uppercase tracking-widest mr-2">New Target:</span>
                        <span className="text-[10px] text-red-500 font-mono font-bold tracking-tight">{killedInput}</span>
                     </motion.div>

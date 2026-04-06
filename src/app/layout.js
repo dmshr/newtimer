@@ -3,6 +3,7 @@ import { Inter, JetBrains_Mono } from "next/font/google";
 import "@/app/globals.css";
 import Header from "@/components/layout/Header";
 import { SoundProvider } from "@/context/SoundContext";
+import { InvasionProvider } from "@/context/InvasionContext";
 
 const inter = Inter({ 
   subsets: ["latin"], 
@@ -22,14 +23,18 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body className="bg-black text-white antialiased font-sans font-medium">
+      {/* ✅ Tambahkan variabel font di sini agar Tailwind bisa membacanya */}
+      <body className={`${inter.variable} ${mono.variable} bg-black text-white antialiased font-sans font-medium`}>
         <SoundProvider>
-          {/* ✅ WAJIB: Header dibungkus Suspense karena menggunakan useSearchParams */}
-          <Suspense fallback={<div className="h-[110px] bg-black w-full" />}>
-            <Header />
-          </Suspense>
-          
-          {children}
+          <InvasionProvider>
+            
+            <Suspense fallback={<div className="h-[110px] bg-black w-full" />}>
+              <Header />
+            </Suspense>
+            
+            {children}
+
+          </InvasionProvider>
         </SoundProvider>
       </body>
     </html>

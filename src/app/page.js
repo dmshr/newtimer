@@ -23,7 +23,7 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* ✅ WAJIB: BossList harus dibungkus Suspense karena menggunakan useSearchParams */}
+        {/* BossList otomatis mendeteksi InvasionProvider dari layout.js */}
         <Suspense fallback={
           <div className="py-20 text-center text-zinc-500 uppercase text-[10px] tracking-widest animate-pulse">
             Initializing System
