@@ -9,7 +9,6 @@ export default function BossModal({ boss, onClose, onSaved }) {
   const [manualDate, setManualDate] = useState(""); 
   const [manualTime, setManualTime] = useState(""); 
   
-  // --- STATE UNTUK DETEKSI PERUBAHAN ---
   const [initialState, setInitialState] = useState({ date: "", time: "" });
   const [confirmAction, setConfirmAction] = useState(null); 
 
@@ -47,7 +46,6 @@ export default function BossModal({ boss, onClose, onSaved }) {
       const now = getNowLocal();
       setManualDate(now.date);
       setManualTime(now.time);
-      // Simpan waktu awal sebagai referensi pembanding
       setInitialState({ date: now.date, time: now.time });
       setConfirmAction(null);
     }
@@ -62,21 +60,22 @@ export default function BossModal({ boss, onClose, onSaved }) {
     }
   }, [manualDate, manualTime]);
 
-  // 🔥 LOGIKA BARU: Cek apakah user sudah mengubah input atau belum
   const isEdited = manualDate !== initialState.date || manualTime !== initialState.time;
 
   const executeAction = async () => {
     try {
+      // ✅ PERBAIKAN: Sertakan rarity agar tidak ter-reset ke default
       let payload = { 
         name: boss.name,
-        interval_hours: boss.interval_hours 
+        interval_hours: boss.interval_hours,
+        rarity: boss.rarity // <-- Tambahkan baris ini
       };
 
       if (confirmAction === 'justnow') {
         payload.use_db_time = true;
       } 
       else if (confirmAction === 'save') {
-        if (!isEdited) return; // Guard tambahan
+        if (!isEdited) return;
         payload.killed = killedInput;
       } 
       else if (confirmAction === 'notspawned') {
@@ -103,7 +102,7 @@ export default function BossModal({ boss, onClose, onSaved }) {
               {confirmAction && (
                 <motion.div initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }} className="absolute inset-0 bg-black z-50 flex flex-col items-center justify-center p-6 text-center">
                   <div className="text-red-600 font-Bold mb-1 uppercase tracking-tighter text-lg">Confirm?</div>
-                  <p className="text-zinc-600 text-[9px] uppercase tracking-widest mb-8">Saving manual timestamp update</p>
+                  <p className="text-zinc-600 text-[9px] uppercase tracking-widest mb-8">Saving update for {boss.name}</p>
                   <div className="flex gap-4 w-full">
                     <button onClick={() => setConfirmAction(null)} className="flex-1 py-3 border border-zinc-800 rounded-lg text-zinc-500 font-bold text-[10px] uppercase hover:bg-zinc-900">CANCEL</button>
                     <button onClick={executeAction} className="flex-1 py-3 bg-green-700 rounded-lg text-white font-black text-[10px] uppercase shadow-lg shadow-green-900/40 hover:bg-green-500">UPDATE</button>
@@ -149,7 +148,7 @@ export default function BossModal({ boss, onClose, onSaved }) {
 
                 <button 
                   onClick={() => setConfirmAction('save')} 
-                  disabled={!isEdited} // 🔥 TOMBOL DISABLED JIKA BELUM DIEDIT
+                  disabled={!isEdited}
                   className={`font-black h-full px-3 rounded-lg transition uppercase tracking-widest text-[9px] shadow-lg ${
                     isEdited 
                     ? "bg-red-700 hover:bg-red-600 text-white shadow-red-900/20" 
@@ -160,7 +159,6 @@ export default function BossModal({ boss, onClose, onSaved }) {
                 </button>
               </div>
 
-              {/* Preview Hasil */}
               <div className="mt-3 min-h-[35px]">
                 <AnimatePresence>
                   {isEdited && killedInput && (
