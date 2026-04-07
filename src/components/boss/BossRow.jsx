@@ -35,11 +35,11 @@ export default function BossRow({ boss, onSelect, onEdit, onDelete, animateInvas
   }, [boss.spawn]);
 
   useEffect(() => {
-    if (time && time.seconds === 119 && !hasAlerted) {
+    if (time && time.seconds === 59 && !hasAlerted) {
       playAlert();
       setHasAlerted(true); 
     }
-    if (time && time.seconds >= 120) setHasAlerted(false);
+    if (time && time.seconds >= 60) setHasAlerted(false);
   }, [time?.seconds, hasAlerted, playAlert]);
 
   if (!time) return <div className="grid grid-cols-3 px-4 py-4 opacity-0 font-inter">loading...</div>;
