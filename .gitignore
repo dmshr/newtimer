@@ -2,3 +2,4 @@ node_modules
 .next
 .env
 adduser.js
+change-pass.js

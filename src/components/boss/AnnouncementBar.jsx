@@ -33,7 +33,7 @@ export default function AnnouncementBar() {
           exit={{ opacity: 0, y: -10 }}
           className="w-full mb-3 px-1"
         >
-          <div className="bg-red-600/5 border border-red-900/20 rounded-xl px-4 py-1 flex items-center gap-3 shadow-sm">
+          <div className="bg-red-900/5 border border-red-700/50 rounded-xl px-4 py-1 flex items-center gap-3 shadow-sm">
             {/* Badge Info Statis */}
             <div className="flex-shrink-0 flex items-center gap-1 bg-red-700 text-white text-[9px] font-black px-2 py-0.5 rounded uppercase tracking-tighter">
               <span className="relative flex h-1.5 w-1.5">
@@ -57,7 +57,7 @@ export default function AnnouncementBar() {
 
             {/* Teks Statis (Bukan Marquee) */}
             <div className="flex-1">
-              <p className="text-[11px] sm:text-xs font-bold text-red-500 tracking-wide leading-tight">
+              <p className="text-[11px] sm:text-xs font-bold text-red-600 tracking-wide leading-tight">
                 {text}
               </p>
             </div>
