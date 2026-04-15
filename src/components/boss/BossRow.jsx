@@ -48,7 +48,6 @@ export default function BossRow({ boss, onSelect, onEdit, onDelete, animateInvas
   const isUrgent = seconds > 0 && seconds < 120;
   const isSpawned = label === "SPAWNED";
 
-  // ✅ KEMBALIKAN WARNA RARITY ASLI (Lengkap dengan Drop Shadow)
   const getRarityColor = (rarity) => {
     switch (rarity?.toLowerCase()) {
       case 'invasi': case 'invasion': case 'orange': return 'text-orange-500';
@@ -70,15 +69,15 @@ export default function BossRow({ boss, onSelect, onEdit, onDelete, animateInvas
       initial="hidden"
       animate="visible"
       transition={{ duration: 0.25 }}
-      // ✅ KEMBALIKAN PADDING & GRID ASLI
+      // PADDING & GRID 
       className="grid grid-cols-[80px_1fr_130px] md:grid-cols-[140px_1fr_190px] gap-2 px-3 md:px-4 py-3 items-center border-b border-zinc-800 font-mono"
     >
-      {/* Kolom 1: Nama (KEMBALIKAN FONT-SANS & STYLE) */}
+      {/* Kolom 1: Nama */}
       <span className={`font-semibold font-sans text-left tracking-wider text-[10px] sm:text-sm md:text-base overflow-visible ${getRarityColor(boss.rarity)}`}>
         {boss.name}
       </span>
 
-      {/* Kolom 2: Waktu (KEMBALIKAN SPACING & FONT) */}
+      {/* Kolom 2: Waktu */}
       <div className="text-right flex flex-col justify-center min-w-0 overflow-hidden">
         <div className="text-[11px] sm:text-sm md:text-base font-semibold text-zinc-300 font-sans tracking-wider whitespace-nowrap">
           {formatOnlyTime(boss.spawn)}
@@ -88,7 +87,7 @@ export default function BossRow({ boss, onSelect, onEdit, onDelete, animateInvas
         </div>
       </div>
 
-      {/* Kolom 3: ACTION AREA (KEMBALIKAN GAP-2 SM:GAP-1) */}
+      {/* Kolom 3: ACTION AREA */}
       <div className="flex justify-end items-center gap-2 sm:gap-1 relative whitespace-nowrap">
         <span className={`
           ${isSpawned && shouldAnimate
