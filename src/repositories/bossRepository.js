@@ -60,7 +60,7 @@ export async function updateBossDetail(data) {
       interval_hours = ${interval},
       rarity = ${rarity},
       spawn = CASE 
-        WHEN killed IS NOT NULL AND killed <> '' 
+        WHEN killed IS NOT NULL AND killed <> '' AND killed <> '--:--:--'
         THEN TO_CHAR((killed::timestamp + (${interval} || ' hours')::interval), 'DD Mon YYYY HH24:MI:SS')
         ELSE spawn 
       END
@@ -73,12 +73,10 @@ export async function deleteBoss(id) {
   return await sql`DELETE FROM bosses WHERE id = ${id}`;
 }
 
-// 🔥 --- FUNGSI GLOBAL BARU (INVASION) --- 🔥
+// 🔥 --- FUNGSI GLOBAL SETTINGS (INVASION & ANNOUNCEMENT) --- 🔥
 
 // 5. RESET WAKTU INVASION SECARA GLOBAL
 export async function resetInvasionTimes() {
-  // Mengeset killed dan spawn menjadi NULL agar UI menampilkan --:--:--
-  // Kita gunakan ILIKE agar tidak sensitif terhadap huruf besar/kecil (Invasion/invasi)
   return await sql`
     UPDATE bosses 
     SET killed = NULL, spawn = NULL 
@@ -86,9 +84,10 @@ export async function resetInvasionTimes() {
   `;
 }
 
-// 6. SIMPAN STATUS TOMBOL (ON/OFF) KE DATABASE
-// Asumsi: Kamu punya tabel 'settings' dengan kolom 'key' (PK) dan 'value'
+// 6. SIMPAN STATUS / TEKS KE DATABASE
+// Digunakan untuk: 'showInvasion' (boolean) dan 'announcement_text' (string)
 export async function updateGlobalSetting(key, value) {
+  // Paksa ke string agar bisa disimpan di kolom TEXT/VARCHAR Neon
   const stringValue = String(value);
   return await sql`
     INSERT INTO settings (key, value)
@@ -98,11 +97,18 @@ export async function updateGlobalSetting(key, value) {
   `;
 }
 
-// 7. AMBIL STATUS TOMBOL DARI DATABASE
+// 7. AMBIL STATUS / TEKS DARI DATABASE
 export async function getGlobalSetting(key) {
   const result = await sql`SELECT value FROM settings WHERE key = ${key}`;
   if (result.length === 0) return null;
   
-  // Konversi kembali string 'true'/'false' menjadi boolean
-  return result[0].value === 'true';
+  const rawValue = result[0].value;
+
+  // Logika Konversi Otomatis:
+  // Jika isi database adalah 'true' atau 'false', kirim sebagai Boolean
+  if (rawValue === 'true') return true;
+  if (rawValue === 'false') return false;
+  
+  // Jika isinya teks biasa (seperti Announcement), kirim sebagai String
+  return rawValue;
 }

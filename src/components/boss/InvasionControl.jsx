@@ -2,14 +2,18 @@
 
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useSession } from "next-auth/react"; // ✅ Import Session
 import { useInvasion } from "@/context/InvasionContext";
 
 export default function InvasionControl() {
+  const { data: session } = useSession();
+  const userRole = session?.user?.role || "User";
+  const isUser = userRole === "User"; // ✅ Role Check
+
   const [isOpen, setIsOpen] = useState(false);
   const { showInvasion, setShowInvasion, triggerReset } = useInvasion();
   const menuRef = useRef(null);
 
-  // Close menu when clicking outside
   useEffect(() => {
     function handleClickOutside(e) {
       if (menuRef.current && !menuRef.current.contains(e.target)) {
@@ -22,21 +26,21 @@ export default function InvasionControl() {
 
   return (
     <div className="relative inline-block" ref={menuRef}>
-      {/* Tombol Utama dengan Red Pulse saat ON */}
       <span
-        onClick={() => setIsOpen(!isOpen)}
-        className={`text-[8px] sm:text-[10px] cursor-pointer transition-all uppercase tracking-wider font-bold px-1.5 py-0.5 rounded border select-none ${
+        // ✅ Hanya buka menu jika BUKAN role User
+        onClick={() => !isUser && setIsOpen(!isOpen)}
+        className={`text-[8px] sm:text-[10px] uppercase tracking-wider font-bold px-1.5 py-0.5 rounded border select-none transition-all ${
           showInvasion
             ? "bg-red-600 text-white border-red-500 animate-pulse"
             : "text-zinc-500 border-zinc-800 hover:text-white"
-        }`}
+        } ${isUser ? "cursor-default opacity-80" : "cursor-pointer"}`} 
       >
         Invasion
       </span>
 
-      {/* Menu Popover */}
       <AnimatePresence>
-        {isOpen && (
+        {/* ✅ Menu Popover diproteksi: Hanya render jika bukan User */}
+        {isOpen && !isUser && (
           <motion.div
             initial={{ opacity: 0, y: -10, scale: 0.95 }}
             animate={{ opacity: 1, y: 5, scale: 1 }}
@@ -44,7 +48,6 @@ export default function InvasionControl() {
             className="absolute left-0 top-full mt-2 w-32 bg-[#0f0f0f] border border-zinc-800 p-2 rounded-xl shadow-2xl z-[60]"
           >
             <div className="flex flex-col gap-2">
-              {/* Toggle ON / OFF */}
               <div className="flex bg-zinc-950 p-1 rounded-lg gap-1">
                 <button
                   onClick={() => setShowInvasion(true)}
@@ -66,7 +69,6 @@ export default function InvasionControl() {
 
               <div className="h-[1px] bg-zinc-800 w-full" />
 
-              {/* Tombol Reset Global */}
               <button
                 onClick={() => {
                   triggerReset();

@@ -4,6 +4,7 @@ import "@/app/globals.css";
 import Header from "@/components/layout/Header";
 import { SoundProvider } from "@/context/SoundContext";
 import { InvasionProvider } from "@/context/InvasionContext";
+import AuthProvider from "@/context/AuthProvider"; // ✅ 1. Import AuthProvider
 
 const inter = Inter({ 
   subsets: ["latin"], 
@@ -23,19 +24,24 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      {/* ✅ Tambahkan variabel font di sini agar Tailwind bisa membacanya */}
       <body className={`${inter.variable} ${mono.variable} bg-black text-white antialiased font-sans font-medium`}>
-        <SoundProvider>
-          <InvasionProvider>
-            
-            <Suspense fallback={<div className="h-[110px] bg-black w-full" />}>
-              <Header />
-            </Suspense>
-            
-            {children}
+        {/*  2. AuthProvider */}
+        <AuthProvider>
+          <SoundProvider>
+            <InvasionProvider>
+              
+              <Suspense fallback={<div className="h-[110px] bg-black w-full" />}>
+                <Header />
+              </Suspense>
+              
+              {/* Main content wrapping */}
+              <main className="min-h-screen">
+                {children}
+              </main>
 
-          </InvasionProvider>
-        </SoundProvider>
+            </InvasionProvider>
+          </SoundProvider>
+        </AuthProvider>
       </body>
     </html>
   );

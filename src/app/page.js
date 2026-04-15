@@ -2,6 +2,7 @@
 
 import { Suspense } from "react";
 import BossList from "@/components/boss/BossList";
+import AnnouncementBar from "@/components/boss/AnnouncementBar"; // ✅ 1. Import Komponen
 import { useSound } from "@/context/SoundContext"; 
 
 export default function HomePage() {
@@ -22,6 +23,9 @@ export default function HomePage() {
             </span>
           </div>
         )}
+
+        {/* ✅ 2. Letakkan AnnouncementBar tepat di atas BossList */}
+        <AnnouncementBar />
 
         {/* BossList otomatis mendeteksi InvasionProvider dari layout.js */}
         <Suspense fallback={

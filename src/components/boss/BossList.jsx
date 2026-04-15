@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useSearchParams } from "next/navigation"; 
 import { AnimatePresence } from "framer-motion";
+import { useSession } from "next-auth/react"; // ✅ 1. Import Session
 import { pusherClient } from "@/lib/pusher";
 import BossRow from "@/components/boss/BossRow";
 import BossModal from "@/components/boss/BossModal";
@@ -22,6 +23,9 @@ function sortBySpawn(bosses) {
 }
 
 export default function BossList() {
+  const { data: session } = useSession(); // ✅ 2. Ambil data session
+  const userRole = session?.user?.role || "User";
+
   const [bosses, setBosses] = useState([]);
   const [selectedBoss, setSelectedBoss] = useState(null); 
   const [editingBoss, setEditingBoss] = useState(null);   
@@ -63,16 +67,27 @@ export default function BossList() {
     };
   }, [loadBosses]);
 
+  // ✅ 3. LOGIKA FILTER ROLE & RARITY
   const filteredBosses = bosses.filter((boss) => {
-    const matchesSearch = boss.name.toLowerCase().includes(query);
     const r = boss.rarity?.toLowerCase();
+    const matchesSearch = boss.name.toLowerCase().includes(query);
+    
+    // Filter 1: Toggle Invasion Global
     const isVisibleInvasion = (r === "invasion" || r === "invasi") ? showInvasion : true;
+
+    // Filter 2: Mini Boss Visibility (Hanya SuperAdmin & Master yang bisa lihat)
+    const isMiniBoss = r === "mini boss" || r === "miniboss";
+    const canSeeMiniBoss = userRole === "SuperAdmin" || userRole === "Master";
+    
+    if (isMiniBoss && !canSeeMiniBoss) {
+      return false; // User & Admin akan "buta" terhadap Mini Boss
+    }
+
     return matchesSearch && isVisibleInvasion;
   });
 
   return (
     <div className="flex flex-col gap-4">
-      {/* ✅ KEMBALIKAN BG & ROUNDED SESUAI GAYA ASLI */}
       <div className="w-full bg-[#0f0f0f] rounded-2xl overflow-hidden min-h-[200px]">
         <AnimatePresence mode="popLayout">
           {filteredBosses.length > 0 ? (
@@ -87,15 +102,15 @@ export default function BossList() {
               />
             ))
           ) : (
-            <div className="py-20 text-center text-gray-500 italic">
-              {bosses.length === 0 ? "Loading data..." : `No boss found for "${query}"`}
+            <div className="py-20 text-center text-zinc-600 italic text-[11px] uppercase tracking-widest">
+              {bosses.length === 0 ? "Synchronizing data..." : `No active bosses for "${query}"`}
             </div>
           )}
         </AnimatePresence>
 
         <BossModal boss={selectedBoss} onClose={() => setSelectedBoss(null)} onSaved={loadBosses} />
         <EditBossModal boss={editingBoss} onClose={() => setEditingBoss(null)} onSaved={loadBosses} />
-        <DeleteBossModal boss={deletingBoss} onClose={() => setDeletingBoss(null)} onSaved={loadBosses} />
+        <DeleteBossModal deletingBoss={deletingBoss} boss={deletingBoss} onClose={() => setDeletingBoss(null)} onSaved={loadBosses} />
       </div>
     </div>
   );

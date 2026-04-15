@@ -2,6 +2,7 @@
 
 import { motion, AnimatePresence } from "framer-motion"; 
 import { useEffect, useState } from "react";
+import { useSession } from "next-auth/react"; // ✅ Import Session
 import { getCountdown } from "@/lib/time";
 import { useSound } from "@/context/SoundContext";
 
@@ -11,6 +12,10 @@ const rowVariants = {
 };
 
 export default function BossRow({ boss, onSelect, onEdit, onDelete, animateInvasion }) {
+  const { data: session } = useSession();
+  const userRole = session?.user?.role || "User";
+  const isReadOnly = userRole === "User"; // ✅ Role Check
+
   const [time, setTime] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const { playAlert } = useSound();
@@ -34,6 +39,7 @@ export default function BossRow({ boss, onSelect, onEdit, onDelete, animateInvas
     return () => clearInterval(interval);
   }, [boss.spawn]);
 
+  // Alert berbunyi pada 1 menit (59 detik) sesuai permintaanmu sebelumnya
   useEffect(() => {
     if (time && time.seconds === 59 && !hasAlerted) {
       playAlert();
@@ -69,7 +75,6 @@ export default function BossRow({ boss, onSelect, onEdit, onDelete, animateInvas
       initial="hidden"
       animate="visible"
       transition={{ duration: 0.25 }}
-      // PADDING & GRID 
       className="grid grid-cols-[80px_1fr_130px] md:grid-cols-[140px_1fr_190px] gap-2 px-3 md:px-4 py-3 items-center border-b border-zinc-800 font-mono"
     >
       {/* Kolom 1: Nama */}
@@ -101,24 +106,30 @@ export default function BossRow({ boss, onSelect, onEdit, onDelete, animateInvas
           {label}
         </span>
 
-        <motion.button
-          whileHover={{ scale: 1.15 }}
-          whileTap={{ scale: 0.8 }}
-          onClick={(e) => { e.stopPropagation(); onSelect(boss); }}
-          className="text-sm sm:text-lg filter drop-shadow-sm flex-shrink-0 opacity-80 hover:opacity-100 transition-opacity"
-        >
-          💀
-        </motion.button>
+        {/* ✅ TOMBOL TENGKORAK: Sembunyikan jika role User */}
+        {!isReadOnly && (
+          <motion.button
+            whileHover={{ scale: 1.15 }}
+            whileTap={{ scale: 0.8 }}
+            onClick={(e) => { e.stopPropagation(); onSelect(boss); }}
+            className="text-sm sm:text-lg filter drop-shadow-sm flex-shrink-0 opacity-80 hover:opacity-100 transition-opacity"
+          >
+            💀
+          </motion.button>
+        )}
 
-        <span
-          onClick={(e) => { e.stopPropagation(); setMenuOpen((prev) => !prev); }}
-          className="cursor-pointer text-zinc-600 hover:text-white text-xl sm:text-2xl px-0.5 flex-shrink-0 font-black leading-none transition-colors"
-        >
-          ⋮
-        </span>
+        {/* ✅ TOMBOL TITIK 3: Sembunyikan jika role User */}
+        {!isReadOnly && (
+          <span
+            onClick={(e) => { e.stopPropagation(); setMenuOpen((prev) => !prev); }}
+            className="cursor-pointer text-zinc-600 hover:text-white text-xl sm:text-2xl px-0.5 flex-shrink-0 font-black leading-none transition-colors"
+          >
+            ⋮
+          </span>
+        )}
 
         <AnimatePresence>
-          {menuOpen && (
+          {menuOpen && !isReadOnly && (
             <>
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setMenuOpen(false)} className="fixed inset-0 z-10" />
               <motion.div
