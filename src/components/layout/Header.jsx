@@ -8,8 +8,8 @@ import { useSound } from "@/context/SoundContext";
 import { useInvasion } from "@/context/InvasionContext"; 
 import TableHeader from "@/components/boss/TableHeader";
 import AddBossModal from "@/components/boss/AddBossModal";
-import RegisterUserModal from "@/components/layout/RegisterUserModal"; // ✅ Import Modal Register
-import AnnouncementBar from "@/components/boss/AnnouncementBar"; // ✅ 1. Import AnnouncementBar
+import RegisterUserModal from "@/components/layout/RegisterUserModal"; 
+import AnnouncementBar from "@/components/boss/AnnouncementBar"; 
 import InvasionControl from "@/components/boss/InvasionControl";
 
 export default function Header() {
@@ -20,31 +20,24 @@ export default function Header() {
   const { volume, setVolume, unlockAudio } = useSound();
   const { showInvasion } = useInvasion(); 
 
-  // --- States ---
   const [showSearch, setShowSearch] = useState(false);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [showVolume, setShowVolume] = useState(false);
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
-  
-  // Announcement States
   const [showAnnounceInput, setShowAnnounceInput] = useState(false);
   const [tempAnnounce, setTempAnnounce] = useState("");
 
-  // --- Refs ---
   const searchRef = useRef(null);
   const toggleRef = useRef(null);
   const volumeRef = useRef(null);
   const inputRef = useRef(null);
 
-  // --- Permissions ---
   const userRole = session?.user?.role || "User";
   const isLoginPage = pathname === "/login";
   const canManage = ["Admin", "SuperAdmin", "Master"].includes(userRole);
   const isMaster = userRole === "Master";
-  
   const queryValue = searchParams.get("q") || "";
 
-  // ✅ 1. FETCH INITIAL ANNOUNCEMENT (Hanya jika Master)
   useEffect(() => {
     if (isMaster && showAnnounceInput) {
       fetch("/api/settings?key=announcement_text")
@@ -53,7 +46,6 @@ export default function Header() {
     }
   }, [isMaster, showAnnounceInput]);
 
-  // ✅ 2. SHORTCUT CTRL+F
   useEffect(() => {
     const handleKeyDown = (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key === "f") {
@@ -65,15 +57,6 @@ export default function Header() {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
-
-  // ✅ 3. HEADER HEIGHT & CLICK OUTSIDE
-  useEffect(() => {
-    if (!isLoginPage) {
-      // Tinggi disesuaikan (+/- 35px) karena penambahan AnnouncementBar
-      const height = showSearch ? "185px" : showAnnounceInput ? "195px" : "145px";
-      document.documentElement.style.setProperty("--header-height", height);
-    }
-  }, [showSearch, showAnnounceInput, isLoginPage]);
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -89,7 +72,6 @@ export default function Header() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // --- Handlers ---
   const handleToggleSearch = () => {
     if (!showSearch) {
       const params = new URLSearchParams(searchParams);
@@ -126,22 +108,24 @@ export default function Header() {
     });
   };
 
-  // ✅ PREVENT RENDER ON LOGIN PAGE (After Hooks)
   if (isLoginPage) return null;
 
   return (
     <header 
       onClick={unlockAudio} 
-      className="fixed top-0 left-0 w-full z-50 bg-black transition-all duration-500 border-b border-zinc-900"
+      /**
+       * ✅ PERBAIKAN:
+       * 1. z-[100]: Memastikan header berada di layer paling atas.
+       * 2. isolate: Membuat konteks penumpukan baru agar elemen di luar tidak bisa menembus masuk.
+       */
+      className="sticky top-0 left-0 w-full z-[100] isolate bg-black border-b border-zinc-900 flex flex-col"
     >
       <div className="max-w-5xl mx-auto w-full">
         {/* TOP BAR */}
         <div className="flex items-center justify-between px-3 md:px-4 py-3 min-h-[60px] gap-2">
           
-          {/* LEFT: Invasion & Search/Add */}
           <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
             <InvasionControl /> 
-            
             <div className="flex items-center gap-1">
               <button 
                 ref={toggleRef} 
@@ -166,7 +150,6 @@ export default function Header() {
             </div>
           </div>
 
-          {/* CENTER: Branding */}
           <div className="flex-1 text-center px-1 min-w-0">
             <div className="text-green-500 text-[16px] sm:text-[20px] font-mono tracking-[0.15em] uppercase leading-none font-black truncate">
               Kain 3
@@ -176,12 +159,9 @@ export default function Header() {
             </div>
           </div>
 
-          {/* RIGHT: Tools */}
           <div className="flex items-center gap-1 sm:gap-1 flex-shrink-0 relative">
-            
             {isMaster && (
               <div className="flex items-center gap-1">
-                {/* ✅ TOMBOL REGISTER USER (MASTER ONLY) */}
                 <button 
                   onClick={() => setIsRegisterOpen(true)}
                   className="p-1.5 rounded-lg text-zinc-500 hover:text-white hover:bg-zinc-800 transition-all"
@@ -191,7 +171,6 @@ export default function Header() {
                   </svg>
                 </button>
 
-                {/* Announcement Button */}
                 <button 
                   onClick={() => {
                     setShowAnnounceInput(!showAnnounceInput);
@@ -244,10 +223,13 @@ export default function Header() {
         </div>
 
         {/* SEARCH BAR DRAWER */}
-        <AnimatePresence>
+        <AnimatePresence initial={false}>
           {showSearch && (
             <motion.div 
-              initial={{ height: 0, opacity: 0 }} animate={{ height: 50, opacity: 1 }} exit={{ height: 0, opacity: 0 }} 
+              initial={{ height: 0, opacity: 0 }} 
+              animate={{ height: "auto", opacity: 1 }} 
+              exit={{ height: 0, opacity: 0 }} 
+              transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
               className="overflow-hidden bg-black px-3 md:px-4 pb-4"
             >
               <div ref={searchRef} className="relative">
@@ -263,11 +245,14 @@ export default function Header() {
           )}
         </AnimatePresence>
 
-        {/* ✅ ANNOUNCEMENT INPUT DRAWER (Master Only) */}
-        <AnimatePresence>
+        {/* ANNOUNCEMENT INPUT DRAWER */}
+        <AnimatePresence initial={false}>
           {showAnnounceInput && isMaster && (
             <motion.div 
-              initial={{ height: 0, opacity: 0 }} animate={{ height: 80, opacity: 1 }} exit={{ height: 0, opacity: 0 }}
+              initial={{ height: 0, opacity: 0 }} 
+              animate={{ height: "auto", opacity: 1 }} 
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
               className="overflow-hidden bg-zinc-950 border-t border-zinc-900 px-4 py-3"
             >
               <div className="flex gap-2 items-center">
@@ -295,19 +280,11 @@ export default function Header() {
         </AnimatePresence>
       </div>
 
-      {/* ✅ PINDAHKAN ANNOUNCEMENT BAR KE SINI (DI ATAS TABLE HEADER) */}
       <AnnouncementBar />
-
       <TableHeader />
-      {canManage && <AddBossModal isOpen={isAddOpen} onClose={() => setIsAddOpen(false)} />}
       
-      {/* ✅ MODAL REGISTER USER (MASTER ONLY) */}
-      {isMaster && (
-        <RegisterUserModal 
-          isOpen={isRegisterOpen} 
-          onClose={() => setIsRegisterOpen(false)} 
-        />
-      )}
+      {canManage && <AddBossModal isOpen={isAddOpen} onClose={() => setIsAddOpen(false)} />}
+      {isMaster && <RegisterUserModal isOpen={isRegisterOpen} onClose={() => setIsRegisterOpen(false)} />}
     </header>
   );
 }

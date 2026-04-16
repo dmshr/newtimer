@@ -10,13 +10,17 @@ export default function HomePage() {
   return (
     <main
       onClick={unlockAudio}
-      style={{ paddingTop: "var(--header-height)" }}
-      className="min-h-screen bg-[#0b0b0b] text-white px-3 md:px-6 transition-all duration-300 ease-in-out cursor-default"
+      /**
+       * ✅ SOLUSI: 
+       * Tambahkan 'pt-3' atau 'pt-4' untuk memberi jarak sedikit 
+       * antara TableHeader (yang sticky) dengan isi BossRow.
+       */
+      className="min-h-screen bg-[#0b0b0b] text-white px-3 md:px-4 cursor-default relative z-0 pt-3"
     >
       <div className="max-w-5xl mx-auto pb-10">
         
         {!isUnlocked && (
-          <div className="text-center mb-4">
+          <div className="text-center py-2">
             <span className="text-[10px] text-zinc-600 uppercase tracking-[0.2em] animate-pulse">
               Click anywhere to enable audio
             </span>

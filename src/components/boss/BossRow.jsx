@@ -45,13 +45,17 @@ export default function BossRow({ boss, onSelect, onEdit, onDelete, animateInvas
     if (time && time.seconds >= 60) setHasAlerted(false);
   }, [time?.seconds, hasAlerted, playAlert]);
 
-  if (!time) return <div className="grid grid-cols-3 px-4 py-4 opacity-0 font-inter">loading...</div>;
+  // ✅ SINKRON: Loading state disamakan gridnya agar tidak "melompat" saat data muncul
+  if (!time) return (
+    <div className="grid grid-cols-[100px_1fr_130px] md:grid-cols-[140px_1fr_190px] px-3 md:px-4 py-3 opacity-0 font-mono">
+      loading...
+    </div>
+  );
 
   const { label, seconds } = time;
   const isUrgent = seconds > 0 && seconds < 120;
   const isSpawned = label === "SPAWNED";
 
-  // ✅ Logika pecah waktu untuk tampilan yang stabil tanpa mengubah 9 menjadi 09
   const h = Math.floor(seconds / 3600);
   const m = Math.floor((seconds % 3600) / 60);
   const s = seconds % 60;
@@ -78,13 +82,15 @@ export default function BossRow({ boss, onSelect, onEdit, onDelete, animateInvas
       initial="hidden"
       animate="visible"
       transition={{ duration: 0.25 }}
-      className="grid grid-cols-[80px_1fr_130px] md:grid-cols-[140px_1fr_190px] gap-2 px-3 md:px-4 py-3 items-center border-b border-zinc-800 font-mono"
+      // ✅ SINKRON TOTAL: grid-cols, gap, dan padding sama dengan TableHeader
+      className="grid grid-cols-[100px_1fr_130px] md:grid-cols-[140px_1fr_190px] gap-2 px-3 md:px-4 py-3 items-center border-b border-zinc-800 font-mono"
     >
       <span className={`font-semibold font-sans text-left tracking-wider text-[12px] sm:text-sm md:text-base overflow-visible ${getRarityColor(boss.rarity)}`}>
         {boss.name}
       </span>
 
-      <div className="text-right flex flex-col justify-center min-w-0 overflow-hidden">
+      {/* ✅ SINKRON: pr-4 ditambahkan agar lurus dengan label "Spawn" di header */}
+      <div className="text-right flex flex-col justify-center min-w-0 overflow-hidden pr-4">
         <div className="text-[11px] sm:text-sm md:text-base font-semibold text-zinc-300 font-sans tracking-wider whitespace-nowrap">
           {formatOnlyTime(boss.spawn)}
         </div>
@@ -94,7 +100,6 @@ export default function BossRow({ boss, onSelect, onEdit, onDelete, animateInvas
       </div>
 
       <div className="flex justify-end items-center gap-2 sm:gap-1 relative whitespace-nowrap">
-        {/* ✅ AREA COUNTDOWN YANG STABIL */}
         <div className={`
           ${isSpawned && shouldAnimate
             ? 'text-red-600 animate-pulse drop-shadow-[0_0_10px_rgba(220,38,38,0.8)] font-bold' 
@@ -109,15 +114,8 @@ export default function BossRow({ boss, onSelect, onEdit, onDelete, animateInvas
             <span className="w-full text-right">{label}</span>
           ) : (
             <div className="flex items-center">
-              {/* Jam */}
-              {h > 0 && (
-                <span className="inline-block w-[2.1em] text-right">{h}h</span>
-              )}
-              {/* Menit - Lebar tetap agar tidak terdorong detik */}
-              {(m > 0 || h > 0) && (
-                <span className="inline-block w-[2.1em] text-right">{m}m</span>
-              )}
-              {/* Detik - Lebar tetap agar tidak menggeser menit */}
+              {h > 0 && <span className="inline-block w-[2.1em] text-right">{h}h</span>}
+              {(m > 0 || h > 0) && <span className="inline-block w-[2.1em] text-right">{m}m</span>}
               <span className="inline-block w-[2.1em] text-right">{s}s</span>
             </div>
           )}
