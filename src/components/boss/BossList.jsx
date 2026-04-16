@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useSearchParams } from "next/navigation"; 
 import { AnimatePresence } from "framer-motion";
-import { useSession } from "next-auth/react"; // ✅ 1. Import Session
+import { useSession } from "next-auth/react"; // ✅ Import Session
 import { pusherClient } from "@/lib/pusher";
 import BossRow from "@/components/boss/BossRow";
 import BossModal from "@/components/boss/BossModal";
@@ -23,7 +23,7 @@ function sortBySpawn(bosses) {
 }
 
 export default function BossList() {
-  const { data: session } = useSession(); // ✅ 2. Ambil data session
+  const { data: session } = useSession(); // ✅ Ambil data session
   const userRole = session?.user?.role || "User";
 
   const [bosses, setBosses] = useState([]);
@@ -67,7 +67,7 @@ export default function BossList() {
     };
   }, [loadBosses]);
 
-  // ✅ 3. LOGIKA FILTER ROLE & RARITY
+  // ✅ LOGIKA FILTER ROLE & RARITY
   const filteredBosses = bosses.filter((boss) => {
     const r = boss.rarity?.toLowerCase();
     const matchesSearch = boss.name.toLowerCase().includes(query);
@@ -80,7 +80,7 @@ export default function BossList() {
     const canSeeMiniBoss = userRole === "SuperAdmin" || userRole === "Master";
     
     if (isMiniBoss && !canSeeMiniBoss) {
-      return false; // User & Admin akan "buta" terhadap Mini Boss
+      return false; // User & Admin tidak akan bisa melihat Mini Boss
     }
 
     return matchesSearch && isVisibleInvasion;

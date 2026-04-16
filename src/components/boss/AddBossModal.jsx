@@ -18,6 +18,7 @@ export default function AddBossModal({ isOpen, onClose, onSaved }) {
       case 'epic': return 'text-red-500 border-red-900/50 drop-shadow-[0_0_5px_rgba(239,68,68,0.5)]';
       case 'rare': return 'text-blue-400 border-blue-900/50 shadow-[0_0_10px_rgba(59,130,246,0.1)]';
       case 'world': return 'text-white border-zinc-700';
+      case 'mini boss': return 'text-cyan-400 border-cyan-900/50 shadow-[0_0_10px_rgba(34,211,238,0.1)]'; // ✅ Tambah warna Mini Boss
       default: return 'text-zinc-300 border-zinc-800';
     }
   };
@@ -92,7 +93,6 @@ export default function AddBossModal({ isOpen, onClose, onSaved }) {
                 </div>
               </div>
 
-              {/* Input Rarity Sesuai Kategori Kamu */}
               <div className="relative">
                 <label className="absolute -top-2 left-3 bg-[#0b0b0b] px-1.5 text-[10px] text-gray-500 uppercase tracking-wider z-10 font-bold">Boss Rarity</label>
                 <div className="relative">
@@ -107,6 +107,7 @@ export default function AddBossModal({ isOpen, onClose, onSaved }) {
                     <option value="Epic" className="bg-black text-red-500 drop-shadow-[0_0_5px_rgba(239,68,68,0.5)]">EPIC (RED)</option>
                     <option value="Legendary" className="bg-black text-purple-500">LEGENDARY (PURPLE)</option>
                     <option value="Invasi" className="bg-black text-orange-500">INVASI (ORANGE)</option>
+                    <option value="Mini Boss" className="bg-black text-cyan-400">MINI BOSS (CYAN)</option> {/* ✅ Opsi Baru */}
                   </select>
                   <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[10px] opacity-30 text-white">▼</div>
                 </div>

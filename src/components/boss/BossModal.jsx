@@ -3,6 +3,7 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
 import { updateBoss } from "@/services/bossServices";
+import { getServerTime } from "@/lib/time"; // ✅ Import getServerTime untuk sinkronisasi
 
 export default function BossModal({ boss, onClose, onSaved }) {
   const [killedInput, setKilledInput] = useState("");
@@ -13,12 +14,13 @@ export default function BossModal({ boss, onClose, onSaved }) {
   const [confirmAction, setConfirmAction] = useState(null); 
 
   const getNowLocal = () => {
-    const now = new Date();
+    // ✅ Menggunakan jam server yang sudah tersinkronisasi
+    const now = new Date(getServerTime()); 
     const offset = now.getTimezoneOffset() * 60000;
     const localISOTime = new Date(now.getTime() - offset).toISOString();
     return {
       date: localISOTime.split("T")[0],
-      time: localISOTime.split("T")[1].slice(0, 5),
+      time: localISOTime.split("T")[1].slice(0, 8),
     };
   };
 
@@ -53,7 +55,7 @@ export default function BossModal({ boss, onClose, onSaved }) {
 
   useEffect(() => {
     if (manualDate && manualTime) {
-      const combined = new Date(`${manualDate}T${manualTime}:00`);
+      const combined = new Date(`${manualDate}T${manualTime}`); 
       if (!isNaN(combined.getTime())) {
         setKilledInput(formatToGmt7(combined));
       }
@@ -64,7 +66,6 @@ export default function BossModal({ boss, onClose, onSaved }) {
 
   const executeAction = async () => {
     try {
-      // ✅ Payload membawa semua atribut asli agar tidak tertimpa default di DB
       let payload = { 
         name: boss.name,
         interval_hours: boss.interval_hours,
@@ -136,9 +137,10 @@ export default function BossModal({ boss, onClose, onSaved }) {
 
                 <input 
                   type="time"
+                  step="1" 
                   value={manualTime}
                   onChange={(e) => setManualTime(e.target.value)}
-                  className="w-[100px] bg-black border border-zinc-900 rounded-lg px-2 py-3 text-[11px] text-white focus:border-red-800 outline-none transition font-mono accent-red-600"
+                  className="w-[110px] bg-black border border-zinc-900 rounded-lg px-2 py-3 text-[11px] text-white focus:border-red-800 outline-none transition font-mono accent-red-600"
                 />
 
                 <button 
@@ -157,9 +159,9 @@ export default function BossModal({ boss, onClose, onSaved }) {
               <div className="mt-3 min-h-[35px]">
                 <AnimatePresence>
                   {isEdited && killedInput && (
-                    <motion.div initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} className="py-2 px-3 bg-zinc-950 border border-zinc-900 rounded-md text-center">
-                       <span className="text-[9px] text-zinc-600 uppercase tracking-widest mr-2">New Target:</span>
-                       <span className="text-[10px] text-red-500 font-mono font-bold tracking-tight">{killedInput}</span>
+                    <motion.div initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} className="py-0.5 px-3 bg-zinc-950 border border-zinc-800 rounded-md text-center">
+                       <span className="text-[9px] text-zinc-500 uppercase tracking-widest mr-2">Check New Time Killed:</span>
+                       <span className="text-[11px] text-red-500 font-mono font-bold tracking-tight">{killedInput}</span>
                     </motion.div>
                   )}
                 </AnimatePresence>

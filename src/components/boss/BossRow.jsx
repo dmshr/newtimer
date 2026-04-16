@@ -2,7 +2,7 @@
 
 import { motion, AnimatePresence } from "framer-motion"; 
 import { useEffect, useState } from "react";
-import { useSession } from "next-auth/react"; // ✅ Import Session
+import { useSession } from "next-auth/react"; 
 import { getCountdown } from "@/lib/time";
 import { useSound } from "@/context/SoundContext";
 
@@ -14,7 +14,7 @@ const rowVariants = {
 export default function BossRow({ boss, onSelect, onEdit, onDelete, animateInvasion }) {
   const { data: session } = useSession();
   const userRole = session?.user?.role || "User";
-  const isReadOnly = userRole === "User"; // ✅ Role Check
+  const isReadOnly = userRole === "User"; 
 
   const [time, setTime] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -29,17 +29,14 @@ export default function BossRow({ boss, onSelect, onEdit, onDelete, animateInvas
 
   useEffect(() => {
     const update = () => {
-      const targetDate = boss.spawn && boss.spawn.includes(" ") 
-        ? new Date(boss.spawn) 
-        : boss.spawn;
-      setTime(getCountdown(targetDate));
+      setTime(getCountdown(boss.spawn));
     };
+    
     update();
     const interval = setInterval(update, 1000);
     return () => clearInterval(interval);
   }, [boss.spawn]);
 
-  // Alert berbunyi pada 1 menit (59 detik) sesuai permintaanmu sebelumnya
   useEffect(() => {
     if (time && time.seconds === 59 && !hasAlerted) {
       playAlert();
@@ -54,6 +51,11 @@ export default function BossRow({ boss, onSelect, onEdit, onDelete, animateInvas
   const isUrgent = seconds > 0 && seconds < 120;
   const isSpawned = label === "SPAWNED";
 
+  // ✅ Logika pecah waktu untuk tampilan yang stabil tanpa mengubah 9 menjadi 09
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = seconds % 60;
+
   const getRarityColor = (rarity) => {
     switch (rarity?.toLowerCase()) {
       case 'invasi': case 'invasion': case 'orange': return 'text-orange-500';
@@ -61,6 +63,7 @@ export default function BossRow({ boss, onSelect, onEdit, onDelete, animateInvas
       case 'epic': case 'red': return 'text-red-500 drop-shadow-[0_0_5px_rgba(239,68,68,0.5)]';
       case 'rare': case 'blue': return 'text-blue-400';
       case 'world': case 'white': return 'text-white';
+      case 'mini boss': case 'miniboss': case 'cyan': return 'text-cyan-400'; 
       default: return 'text-zinc-300';
     }
   };
@@ -77,12 +80,10 @@ export default function BossRow({ boss, onSelect, onEdit, onDelete, animateInvas
       transition={{ duration: 0.25 }}
       className="grid grid-cols-[80px_1fr_130px] md:grid-cols-[140px_1fr_190px] gap-2 px-3 md:px-4 py-3 items-center border-b border-zinc-800 font-mono"
     >
-      {/* Kolom 1: Nama */}
-      <span className={`font-semibold font-sans text-left tracking-wider text-[10px] sm:text-sm md:text-base overflow-visible ${getRarityColor(boss.rarity)}`}>
+      <span className={`font-semibold font-sans text-left tracking-wider text-[12px] sm:text-sm md:text-base overflow-visible ${getRarityColor(boss.rarity)}`}>
         {boss.name}
       </span>
 
-      {/* Kolom 2: Waktu */}
       <div className="text-right flex flex-col justify-center min-w-0 overflow-hidden">
         <div className="text-[11px] sm:text-sm md:text-base font-semibold text-zinc-300 font-sans tracking-wider whitespace-nowrap">
           {formatOnlyTime(boss.spawn)}
@@ -92,21 +93,36 @@ export default function BossRow({ boss, onSelect, onEdit, onDelete, animateInvas
         </div>
       </div>
 
-      {/* Kolom 3: ACTION AREA */}
       <div className="flex justify-end items-center gap-2 sm:gap-1 relative whitespace-nowrap">
-        <span className={`
+        {/* ✅ AREA COUNTDOWN YANG STABIL */}
+        <div className={`
           ${isSpawned && shouldAnimate
             ? 'text-red-600 animate-pulse drop-shadow-[0_0_10px_rgba(220,38,38,0.8)] font-bold' 
             : isUrgent && shouldAnimate
               ? 'text-red-500 animate-pulse' 
               : 'text-zinc-200'
           } 
-          text-[12px] font-bold sm:text-sm md:text-xl font-sans tracking-tighter transition-all
+          text-[14px] sm:text-sm md:text-xl font-mono font-bold tracking-tighter transition-all
+          flex justify-end
         `}>
-          {label}
-        </span>
+          {isSpawned ? (
+            <span className="w-full text-right">{label}</span>
+          ) : (
+            <div className="flex items-center">
+              {/* Jam */}
+              {h > 0 && (
+                <span className="inline-block w-[2.1em] text-right">{h}h</span>
+              )}
+              {/* Menit - Lebar tetap agar tidak terdorong detik */}
+              {(m > 0 || h > 0) && (
+                <span className="inline-block w-[2.1em] text-right">{m}m</span>
+              )}
+              {/* Detik - Lebar tetap agar tidak menggeser menit */}
+              <span className="inline-block w-[2.1em] text-right">{s}s</span>
+            </div>
+          )}
+        </div>
 
-        {/* ✅ TOMBOL TENGKORAK: Sembunyikan jika role User */}
         {!isReadOnly && (
           <motion.button
             whileHover={{ scale: 1.15 }}
@@ -118,7 +134,6 @@ export default function BossRow({ boss, onSelect, onEdit, onDelete, animateInvas
           </motion.button>
         )}
 
-        {/* ✅ TOMBOL TITIK 3: Sembunyikan jika role User */}
         {!isReadOnly && (
           <span
             onClick={(e) => { e.stopPropagation(); setMenuOpen((prev) => !prev); }}

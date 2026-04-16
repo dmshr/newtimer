@@ -9,6 +9,7 @@ import { useInvasion } from "@/context/InvasionContext";
 import TableHeader from "@/components/boss/TableHeader";
 import AddBossModal from "@/components/boss/AddBossModal";
 import RegisterUserModal from "@/components/layout/RegisterUserModal"; // ✅ Import Modal Register
+import AnnouncementBar from "@/components/boss/AnnouncementBar"; // ✅ 1. Import AnnouncementBar
 import InvasionControl from "@/components/boss/InvasionControl";
 
 export default function Header() {
@@ -68,7 +69,8 @@ export default function Header() {
   // ✅ 3. HEADER HEIGHT & CLICK OUTSIDE
   useEffect(() => {
     if (!isLoginPage) {
-      const height = showSearch ? "150px" : showAnnounceInput ? "160px" : "110px";
+      // Tinggi disesuaikan (+/- 35px) karena penambahan AnnouncementBar
+      const height = showSearch ? "185px" : showAnnounceInput ? "195px" : "145px";
       document.documentElement.style.setProperty("--header-height", height);
     }
   }, [showSearch, showAnnounceInput, isLoginPage]);
@@ -292,6 +294,9 @@ export default function Header() {
           )}
         </AnimatePresence>
       </div>
+
+      {/* ✅ PINDAHKAN ANNOUNCEMENT BAR KE SINI (DI ATAS TABLE HEADER) */}
+      <AnnouncementBar />
 
       <TableHeader />
       {canManage && <AddBossModal isOpen={isAddOpen} onClose={() => setIsAddOpen(false)} />}

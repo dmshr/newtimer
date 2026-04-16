@@ -31,9 +31,11 @@ export default function AnnouncementBar() {
           initial={{ opacity: 0, y: -10 }} 
           animate={{ opacity: 1, y: 0 }} 
           exit={{ opacity: 0, y: -10 }}
-          className="w-full mb-3 px-1"
+          // ✅ Sedikit penyesuaian: mb-2 agar tidak terlalu jauh dengan TableHeader
+          // ✅ px-3 md:px-4 agar sejajar dengan isi header lainnya
+          className="w-full mb-1 px-3 md:px-4"
         >
-          <div className="bg-red-900/5 border border-red-700/50 rounded-xl px-4 py-1 flex items-center gap-3 shadow-sm">
+          <div className="bg-red-900/5 border border-red-700/50 rounded-xl px-4 py-1.5 flex items-center gap-3 shadow-sm">
             {/* Badge Info Statis */}
             <div className="flex-shrink-0 flex items-center gap-1 bg-red-700 text-white text-[9px] font-black px-2 py-0.5 rounded uppercase tracking-tighter">
               <span className="relative flex h-1.5 w-1.5">

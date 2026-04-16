@@ -4,7 +4,8 @@ import "@/app/globals.css";
 import Header from "@/components/layout/Header";
 import { SoundProvider } from "@/context/SoundContext";
 import { InvasionProvider } from "@/context/InvasionContext";
-import AuthProvider from "@/context/AuthProvider"; // ✅ 1. Import AuthProvider
+import AuthProvider from "@/context/AuthProvider";
+import TimeSync from "@/components/layout/TimeSync"; // ✅ Import komponen sync baru
 
 const inter = Inter({ 
   subsets: ["latin"], 
@@ -17,16 +18,18 @@ const mono = JetBrains_Mono({
 });
 
 export const metadata = {
-  title: "Kain Boss Tracker",
-  description: "Advanced Realtime Boss Tracking System",
+  title: "Kain 3",
+  description: "Boss Timer DOGE2",
 };
 
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body className={`${inter.variable} ${mono.variable} bg-black text-white antialiased font-sans font-medium`}>
-        {/*  2. AuthProvider */}
         <AuthProvider>
+          {/* ✅ Tambahkan TimeSync di sini agar jam server tersinkronisasi otomatis */}
+          <TimeSync /> 
+          
           <SoundProvider>
             <InvasionProvider>
               
