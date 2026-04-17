@@ -9,13 +9,13 @@ export default function TableHeader() {
             * 2. Padding: Harus sama dengan BossRow & Header (px-3 md:px-4)
             * 3. Gap: Harus sama dengan BossRow (gap-2) agar teks kolom tengah lurus
             */
-          className="grid grid-cols-[100px_1fr_130px] md:grid-cols-[140px_1fr_190px] gap-2 px-3 md:px-4 py-2 text-zinc-500 text-[9px] md:text-[10px] uppercase font-bold tracking-widest border-t border-zinc-900 bg-black/50"
+          className="grid grid-cols-[1.5fr_1fr_110px] md:grid-cols-[1.5fr_1fr_150px] gap-2 px-3 md:px-4 py-2 text-zinc-500 text-[9px] md:text-[10px] uppercase font-bold tracking-widest border-t border-zinc-900 bg-black/50"
         >
           {/* Kolom Kiri: Sejajar Nama Boss (pl-4 dihapus agar lurus sempurna) */}
           <span className="text-left pl-4 whitespace-nowrap">Boss</span>
 
           {/* Kolom Tengah: Sejajar dengan Waktu Spawn (pr-4 dipertahankan untuk jam) */}
-          <span className="text-right pr-4 whitespace-nowrap">Spawn</span>
+          <span className="text-right pr-6 whitespace-nowrap">Spawn</span>
 
           {/* Kolom Kanan: Sejajar dengan Countdown & Icon */}
           <span className="text-center whitespace-nowrap">Countdown</span>
