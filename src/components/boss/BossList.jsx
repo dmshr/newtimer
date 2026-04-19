@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useSearchParams } from "next/navigation"; 
 import { AnimatePresence } from "framer-motion";
-import { useSession } from "next-auth/react"; // ✅ Import Session
+import { useSession } from "next-auth/react"; 
 import { pusherClient } from "@/lib/pusher";
 import BossRow from "@/components/boss/BossRow";
 import BossModal from "@/components/boss/BossModal";
@@ -23,7 +23,7 @@ function sortBySpawn(bosses) {
 }
 
 export default function BossList() {
-  const { data: session } = useSession(); // ✅ Ambil data session
+  const { data: session } = useSession(); 
   const userRole = session?.user?.role || "User";
 
   const [bosses, setBosses] = useState([]);
@@ -61,28 +61,43 @@ export default function BossList() {
 
   useEffect(() => {
     const channel = pusherClient?.subscribe("boss-timer-k3");
-    channel?.bind("boss-updated", () => { loadBosses(); });
+    
+    channel?.bind("boss-updated", (payload) => {
+      // ✅ LOGIKA PAYLOAD UPDATE (TANPA FETCH ULANG)
+      if (payload.type === "UPDATE") {
+        setBosses((prev) => {
+          const exists = prev.find(b => b.id === payload.boss.id);
+          let newList;
+          if (exists) {
+            newList = prev.map(b => b.id === payload.boss.id ? payload.boss : b);
+          } else {
+            newList = [...prev, payload.boss];
+          }
+          return sortBySpawn(newList);
+        });
+      } 
+      else if (payload.type === "DELETE") {
+        setBosses((prev) => prev.filter(b => b.id !== payload.id));
+      } 
+      else {
+        // Fallback untuk pesan lama atau sinyal tanpa payload
+        loadBosses();
+      }
+    });
+
     return () => {
       pusherClient?.unsubscribe("boss-timer-k3");
     };
   }, [loadBosses]);
 
-  // ✅ LOGIKA FILTER ROLE & RARITY
   const filteredBosses = bosses.filter((boss) => {
     const r = boss.rarity?.toLowerCase();
     const matchesSearch = boss.name.toLowerCase().includes(query);
-    
-    // Filter 1: Toggle Invasion Global
     const isVisibleInvasion = (r === "invasion" || r === "invasi") ? showInvasion : true;
-
-    // Filter 2: Mini Boss Visibility (Hanya SuperAdmin & Master yang bisa lihat)
     const isMiniBoss = r === "mini boss" || r === "miniboss";
     const canSeeMiniBoss = userRole === "SuperAdmin" || userRole === "Master";
     
-    if (isMiniBoss && !canSeeMiniBoss) {
-      return false; // User & Admin tidak akan bisa melihat Mini Boss
-    }
-
+    if (isMiniBoss && !canSeeMiniBoss) return false;
     return matchesSearch && isVisibleInvasion;
   });
 
@@ -108,9 +123,9 @@ export default function BossList() {
           )}
         </AnimatePresence>
 
-        <BossModal boss={selectedBoss} onClose={() => setSelectedBoss(null)} onSaved={loadBosses} />
-        <EditBossModal boss={editingBoss} onClose={() => setEditingBoss(null)} onSaved={loadBosses} />
-        <DeleteBossModal deletingBoss={deletingBoss} boss={deletingBoss} onClose={() => setDeletingBoss(null)} onSaved={loadBosses} />
+        <BossModal boss={selectedBoss} onClose={() => setSelectedBoss(null)} />
+        <EditBossModal boss={editingBoss} onClose={() => setEditingBoss(null)} />
+        <DeleteBossModal boss={deletingBoss} onClose={() => setDeletingBoss(null)} />
       </div>
     </div>
   );

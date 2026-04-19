@@ -1,11 +1,17 @@
 "use client";
 
 import { Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import BossList from "@/components/boss/BossList";
+import SalaryView from "@/components/salary/SalaryView"; // ✅ Pastikan file ini ada
 import { useSound } from "@/context/SoundContext"; 
 
 export default function HomePage() {
   const { unlockAudio, isUnlocked } = useSound(); 
+  const searchParams = useSearchParams();
+  
+  // ✅ LOGIKA DETEKSI VIEW
+  const currentView = searchParams.get("view") || "boss";
 
   return (
     <main
@@ -27,13 +33,17 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* BossList otomatis mendeteksi InvasionProvider dari layout.js */}
         <Suspense fallback={
           <div className="py-20 text-center text-zinc-500 uppercase text-[10px] tracking-widest animate-pulse">
             Initializing System
           </div>
         }>
-          <BossList />
+          {/* ✅ SWITCHER KONTEN */}
+          {currentView === "salary" ? (
+            <SalaryView />
+          ) : (
+            <BossList />
+          )}
         </Suspense>
 
       </div>

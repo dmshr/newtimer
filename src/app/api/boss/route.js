@@ -24,10 +24,14 @@ export async function POST(req) {
     const body = await req.json();
     if (!body.name) return Response.json({ error: "Name required" }, { status: 400 });
 
-    await saveBoss(body);
+    const result = await saveBoss(body);
+    const updatedBoss = result[0];
 
-    // Broadcast update ke semua user
-    await pusherServer.trigger("boss-timer-k3", "boss-updated", { message: "Timer updated" });
+    // Broadcast data lengkap (Payload)
+    await pusherServer.trigger("boss-timer-k3", "boss-updated", { 
+      type: "UPDATE", 
+      boss: updatedBoss 
+    });
 
     return Response.json({ success: true });
   } catch (error) {
@@ -41,8 +45,13 @@ export async function PATCH(req) {
     const body = await req.json();
     if (!body.id) return Response.json({ error: "ID required" }, { status: 400 });
 
-    await updateBossDetail(body);
-    await pusherServer.trigger("boss-timer-k3", "boss-updated", { message: "Detail updated" });
+    const result = await updateBossDetail(body);
+    const updatedBoss = result[0];
+
+    await pusherServer.trigger("boss-timer-k3", "boss-updated", { 
+      type: "UPDATE", 
+      boss: updatedBoss 
+    });
 
     return Response.json({ success: true });
   } catch (error) {
@@ -59,7 +68,12 @@ export async function DELETE(req) {
     if (!id) return Response.json({ error: "ID required" }, { status: 400 });
 
     await deleteBoss(id);
-    await pusherServer.trigger("boss-timer-k3", "boss-updated", { message: "Boss deleted" });
+
+    // Broadcast ID yang dihapus
+    await pusherServer.trigger("boss-timer-k3", "boss-updated", { 
+      type: "DELETE", 
+      id: parseInt(id) 
+    });
 
     return Response.json({ success: true });
   } catch (error) {

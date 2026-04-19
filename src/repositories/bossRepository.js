@@ -27,6 +27,7 @@ export async function saveBoss(data) {
         spawn = EXCLUDED.spawn,
         interval_hours = EXCLUDED.interval_hours,
         rarity = EXCLUDED.rarity
+      RETURNING *
     `;
   }
 
@@ -45,6 +46,7 @@ export async function saveBoss(data) {
       spawn = EXCLUDED.spawn,
       interval_hours = EXCLUDED.interval_hours,
       rarity = EXCLUDED.rarity
+    RETURNING *
   `;
 }
 
@@ -65,12 +67,13 @@ export async function updateBossDetail(data) {
         ELSE spawn 
       END
     WHERE id = ${id}
+    RETURNING *
   `;
 }
 
 // 4. DELETE BOSS
 export async function deleteBoss(id) {
-  return await sql`DELETE FROM bosses WHERE id = ${id}`;
+  return await sql`DELETE FROM bosses WHERE id = ${id} RETURNING id`;
 }
 
 // 🔥 --- FUNGSI GLOBAL SETTINGS (INVASION & ANNOUNCEMENT) --- 🔥
@@ -85,9 +88,7 @@ export async function resetInvasionTimes() {
 }
 
 // 6. SIMPAN STATUS / TEKS KE DATABASE
-// Digunakan untuk: 'showInvasion' (boolean) dan 'announcement_text' (string)
 export async function updateGlobalSetting(key, value) {
-  // Paksa ke string agar bisa disimpan di kolom TEXT/VARCHAR Neon
   const stringValue = String(value);
   return await sql`
     INSERT INTO settings (key, value)
@@ -101,14 +102,33 @@ export async function updateGlobalSetting(key, value) {
 export async function getGlobalSetting(key) {
   const result = await sql`SELECT value FROM settings WHERE key = ${key}`;
   if (result.length === 0) return null;
-  
   const rawValue = result[0].value;
-
-  // Logika Konversi Otomatis:
-  // Jika isi database adalah 'true' atau 'false', kirim sebagai Boolean
   if (rawValue === 'true') return true;
   if (rawValue === 'false') return false;
-  
-  // Jika isinya teks biasa (seperti Announcement), kirim sebagai String
   return rawValue;
+}
+
+// 8. AMBIL SEMUA DATA SALARY DARI NEON
+export async function getAllSalaries() {
+  return await sql`SELECT * FROM salaries ORDER BY id ASC`;
+}
+
+// 9. RE-INSERT DATA SALARY (6 KOLOM: A-F)
+export async function syncSalariesFromSheet(dataArray) {
+  await sql`TRUNCATE TABLE salaries`;
+
+  for (const item of dataArray) {
+    await sql`
+      INSERT INTO salaries (member_name, last_week, current_salary, debt, receivables, total_amount)
+      VALUES (
+        ${item.member_name}, 
+        ${item.last_week}, 
+        ${item.current_salary}, 
+        ${item.debt}, 
+        ${item.receivables}, 
+        ${item.total_amount}
+      )
+    `;
+  }
+  return { success: true };
 }
