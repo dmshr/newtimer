@@ -5,7 +5,7 @@ import Header from "@/components/layout/Header";
 import { SoundProvider } from "@/context/SoundContext";
 import { InvasionProvider } from "@/context/InvasionContext";
 import AuthProvider from "@/context/AuthProvider";
-import TimeSync from "@/components/layout/TimeSync"; // ✅ Import komponen sync baru
+import TimeSync from "@/components/layout/TimeSync";
 
 const inter = Inter({ 
   subsets: ["latin"], 
@@ -27,13 +27,13 @@ export default function RootLayout({ children }) {
     <html lang="en">
       <body className={`${inter.variable} ${mono.variable} bg-black text-white antialiased font-sans font-medium`}>
         <AuthProvider>
-          {/* ✅ Tambahkan TimeSync di sini agar jam server tersinkronisasi otomatis */}
           <TimeSync /> 
           
           <SoundProvider>
             <InvasionProvider>
               
-              <Suspense fallback={<div className="h-[110px] bg-black w-full" />}>
+              {/* ✅ Header dibungkus Suspense karena menggunakan useSearchParams */}
+              <Suspense fallback={<div className="h-[60px] bg-black border-b border-zinc-900 w-full" />}>
                 <Header />
               </Suspense>
               
