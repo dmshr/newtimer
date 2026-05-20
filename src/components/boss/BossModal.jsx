@@ -76,6 +76,7 @@ export default function BossModal({ boss, onClose, onSaved }) {
         payload.use_db_time = true;
       } 
       else if (confirmAction === 'notspawned') {
+        // Kalkulasi: Waktu Spawn Lama + Interval Boss
         let spawnDateObj = new Date(boss.spawn);
         if (isNaN(spawnDateObj.getTime())) {
           const parts = boss.spawn.split(" ");
@@ -91,8 +92,9 @@ export default function BossModal({ boss, onClose, onSaved }) {
           }
         }
         spawnDateObj.setHours(spawnDateObj.getHours() + parseInt(boss.interval_hours || 0));
+        
         payload.spawn = formatToGmt7(spawnDateObj);
-        payload.only_update_spawn = true; 
+        payload.manual_spawn = true; // ✅ DIKEMBALIKAN KE manual_spawn AGAR DIKENALI BACKEND
       }
       else if (confirmAction === 'manual_killed') {
         if (!isEdited) return;
@@ -101,7 +103,7 @@ export default function BossModal({ boss, onClose, onSaved }) {
       else if (confirmAction === 'manual_spawn') {
         if (!isEdited) return;
         payload.spawn = formattedOutput;
-        payload.only_update_spawn = true; 
+        payload.manual_spawn = true; // ✅ DIKEMBALIKAN KE manual_spawn
       }
 
       onClose();
