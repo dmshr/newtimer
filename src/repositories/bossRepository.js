@@ -5,11 +5,21 @@ export async function getAllBosses() {
   return await sql`SELECT * FROM bosses ORDER BY name ASC`;
 }
 
-// 2. UPDATE TIMER & ADD BOSS (Tombol Tengkorak)
+// 2. UPDATE TIMER & ADD BOSS
 export async function saveBoss(data) {
-  const { name, killed, interval_hours, use_db_time, rarity } = data; 
+  const { name, killed, interval_hours, use_db_time, rarity, action } = data; 
   const interval = parseInt(interval_hours) || 1;
   const bossRarity = rarity || 'World';
+
+  // 🔥 LOGIKA "NOT SPAWNED" - FIXED DENGAN TO_TIMESTAMP
+  if (action === 'not_spawned') {
+    return await sql`
+      UPDATE bosses 
+      SET spawn = TO_CHAR(TO_TIMESTAMP(spawn, 'DD Mon YYYY HH24:MI:SS') + (${interval} || ' hours')::interval, 'DD Mon YYYY HH24:MI:SS')
+      WHERE name = ${name} AND spawn <> '--:--:--'
+      RETURNING *
+    `;
+  }
 
   if (use_db_time) {
     return await sql`
@@ -31,12 +41,13 @@ export async function saveBoss(data) {
     `;
   }
 
+  // Logika Manual Edit
   return await sql`
     INSERT INTO bosses (name, killed, spawn, interval_hours, rarity)
     VALUES (
       ${name}, 
       ${killed}, 
-      TO_CHAR((${killed}::timestamp + (${interval} || ' hours')::interval), 'DD Mon YYYY HH24:MI:SS'), 
+      TO_CHAR((TO_TIMESTAMP(${killed}, 'DD Mon YYYY HH24:MI:SS') + (${interval} || ' hours')::interval), 'DD Mon YYYY HH24:MI:SS'), 
       ${interval},
       ${bossRarity}
     )
@@ -50,7 +61,7 @@ export async function saveBoss(data) {
   `;
 }
 
-// 3. UPDATE DETAIL (Nama, Interval, Rarity)
+// 3. UPDATE DETAIL (Nama, Interval, Rarity) - FIXED DENGAN TO_TIMESTAMP
 export async function updateBossDetail(data) {
   const { id, name, interval_hours, rarity } = data;
   const interval = parseInt(interval_hours) || 1;
@@ -63,7 +74,7 @@ export async function updateBossDetail(data) {
       rarity = ${rarity},
       spawn = CASE 
         WHEN killed IS NOT NULL AND killed <> '' AND killed <> '--:--:--'
-        THEN TO_CHAR((killed::timestamp + (${interval} || ' hours')::interval), 'DD Mon YYYY HH24:MI:SS')
+        THEN TO_CHAR((TO_TIMESTAMP(killed, 'DD Mon YYYY HH24:MI:SS') + (${interval} || ' hours')::interval), 'DD Mon YYYY HH24:MI:SS')
         ELSE spawn 
       END
     WHERE id = ${id}
@@ -75,8 +86,6 @@ export async function updateBossDetail(data) {
 export async function deleteBoss(id) {
   return await sql`DELETE FROM bosses WHERE id = ${id} RETURNING id`;
 }
-
-// 🔥 --- FUNGSI GLOBAL SETTINGS (INVASION & ANNOUNCEMENT) --- 🔥
 
 // 5. RESET WAKTU INVASION SECARA GLOBAL
 export async function resetInvasionTimes() {
@@ -108,26 +117,18 @@ export async function getGlobalSetting(key) {
   return rawValue;
 }
 
-// 8. AMBIL SEMUA DATA SALARY DARI NEON
+// 8. AMBIL SEMUA DATA SALARY
 export async function getAllSalaries() {
   return await sql`SELECT * FROM salaries ORDER BY id ASC`;
 }
 
-// 9. RE-INSERT DATA SALARY (6 KOLOM: A-F)
+// 9. RE-INSERT DATA SALARY
 export async function syncSalariesFromSheet(dataArray) {
   await sql`TRUNCATE TABLE salaries`;
-
   for (const item of dataArray) {
     await sql`
       INSERT INTO salaries (member_name, last_week, current_salary, debt, receivables, total_amount)
-      VALUES (
-        ${item.member_name}, 
-        ${item.last_week}, 
-        ${item.current_salary}, 
-        ${item.debt}, 
-        ${item.receivables}, 
-        ${item.total_amount}
-      )
+      VALUES (${item.member_name}, ${item.last_week}, ${item.current_salary}, ${item.debt}, ${item.receivables}, ${item.total_amount})
     `;
   }
   return { success: true };

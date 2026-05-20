@@ -5,9 +5,11 @@ import { useState, useEffect } from "react";
 import { getServerTime } from "@/lib/time"; 
 
 export default function BossModal({ boss, onClose, onSaved }) {
+  // ─── STATE MANAJEMEN LAYAR MODAL ──────────────────────────────────
   const [currentScreen, setCurrentScreen] = useState("menu"); 
   const [confirmAction, setConfirmAction] = useState(null); 
 
+  // State Input Manual
   const [manualDate, setManualDate] = useState(""); 
   const [manualTime, setManualTime] = useState(""); 
   const [formattedOutput, setFormattedOutput] = useState(""); 
@@ -75,63 +77,9 @@ export default function BossModal({ boss, onClose, onSaved }) {
       if (confirmAction === 'justnow') {
         payload.use_db_time = true;
       } 
-      // 🚀 LOGIKA NOT SPAWNED ANTI-RUSAK (CALENDAR MATH MURNI)
+      // ✅ FIX: Kirimkan instruksi 'not_spawned' saja, jangan hitung manual di sini
       else if (confirmAction === 'notspawned') {
-        if (!boss.spawn || boss.spawn === "--:--:--") {
-          setConfirmAction(null);
-          return;
-        }
-
-        // 1. Ekstrak data waktu secara paksa menggunakan Regex
-        const match = boss.spawn.match(/(\d{1,2})[^\w]+([A-Za-z]+)[^\w]+(\d{4})[^\w]+(\d{1,2}):(\d{1,2}):(\d{1,2})/);
-        
-        if (!match) {
-          console.error("Gagal membaca format waktu:", boss.spawn);
-          setConfirmAction(null);
-          return;
-        }
-
-        let [_, d, mStr, y, h, m, s] = match;
-        d = parseInt(d, 10);
-        y = parseInt(y, 10);
-        h = parseInt(h, 10);
-        m = parseInt(m, 10);
-        s = parseInt(s, 10);
-
-        const months = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
-        const mIndex = months.findIndex(mon => mon === mStr.toLowerCase().substring(0,3));
-
-        // 2. Konversi jam interval boss menjadi satuan Menit penuh
-        let addMins = 0;
-        if (typeof boss.interval_hours === "string" && boss.interval_hours.includes(":")) {
-            const [ih, im] = boss.interval_hours.split(":").map(Number);
-            addMins = (ih * 60) + (im || 0);
-        } else {
-            addMins = Math.round(parseFloat(boss.interval_hours || 0) * 60);
-        }
-
-        // 3. Tambahkan menit tersebut ke waktu lama (Sistem Kalkulasi Matematika Rollover)
-        m += addMins;
-        h += Math.floor(m / 60);
-        m = m % 60;
-        
-        let addDays = Math.floor(h / 24);
-        h = h % 24;
-
-        // 4. Gunakan mesin kalender internal UTC murni untuk menggeser hari & bulan tanpa efek Zona Waktu
-        const safeDate = new Date(Date.UTC(y, mIndex, d + addDays, h, m, s));
-        
-        const outDays = String(safeDate.getUTCDate()).padStart(2, '0');
-        const outMonthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-        const outMonth = outMonthNames[safeDate.getUTCMonth()];
-        const outYear = safeDate.getUTCFullYear();
-        const outH = String(safeDate.getUTCHours()).padStart(2, '0');
-        const outM = String(safeDate.getUTCMinutes()).padStart(2, '0');
-        const outS = String(safeDate.getUTCSeconds()).padStart(2, '0');
-
-        // 5. Susun kembali string utuhnya
-        payload.spawn = `${outDays} ${outMonth} ${outYear} ${outH}:${outM}:${outS}`;
-        payload.manual_spawn = true; 
+        payload.action = 'not_spawned'; 
       }
       else if (confirmAction === 'manual_killed') {
         if (!isEdited) return;
