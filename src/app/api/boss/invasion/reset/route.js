@@ -1,15 +1,16 @@
-import { resetInvasionTimes } from "@/repositories/bossRepository"; // Kamu perlu buat fungsi ini di repo
+import { resetInvasionTimes } from "@/repositories/bossRepository";
 import { pusherServer } from "@/lib/pusher";
 
 export async function POST() {
   try {
+    // 1. Reset data di Database Neon
     await resetInvasionTimes();
 
-    // Sinyal 1: Beritahu BossList untuk refresh data dari database
+    // 2. Sinyal 1: Beritahu BossList untuk sinkronisasi data sisa boss lainnya
     await pusherServer.trigger("boss-timer-k3", "boss-updated", { message: "Invasion Reset" });
     
-    // Sinyal 2: Beritahu Context untuk memicu animasi reset jika perlu
-    await pusherServer.trigger("global-settings", "invasion-reset", {});
+    // 3. Sinyal 2: Beritahu InvasionContext di channel yang SAMA (boss-timer-k3) untuk trigger animasi reset
+    await pusherServer.trigger("boss-timer-k3", "invasion-reset", {});
 
     return Response.json({ success: true });
   } catch (error) {

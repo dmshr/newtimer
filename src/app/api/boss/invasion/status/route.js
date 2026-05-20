@@ -1,4 +1,4 @@
-import { updateGlobalSetting, getGlobalSetting } from "@/repositories/bossRepository"; // Kamu perlu buat fungsi ini
+import { updateGlobalSetting, getGlobalSetting } from "@/repositories/bossRepository";
 import { pusherServer } from "@/lib/pusher";
 
 export const dynamic = "force-dynamic";
@@ -9,15 +9,19 @@ export async function GET() {
   return Response.json({ showInvasion: status ?? true });
 }
 
-// Simpan status baru
+// Simpan status baru (SINKRON DENGAN INVASION CONTEXT)
 export async function POST(req) {
   try {
     const { showInvasion } = await req.json();
     
+    // 1. Simpan ke Database
     await updateGlobalSetting("showInvasion", showInvasion);
 
-    // Beritahu semua user agar tombol Invasion mereka berubah warna/status secara real-time
-    await pusherServer.trigger("global-settings", "status-changed", { showInvasion });
+    // 2. Broadcast via Pusher (Disamakan ke channel induk & event setting-updated)
+    await pusherServer.trigger("boss-timer-k3", "setting-updated", { 
+      key: "showInvasion", 
+      value: showInvasion 
+    });
 
     return Response.json({ success: true });
   } catch (error) {

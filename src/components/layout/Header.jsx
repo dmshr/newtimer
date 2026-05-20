@@ -185,7 +185,7 @@ export default function Header() {
             <div className="text-red-500 text-[16px] sm:text-[20px] font-mono tracking-[0.15em] uppercase leading-none font-black truncate">
               DOGE <span className="text-white">2</span>
             </div>
-            <div className="text-[8px] sm:text-[9px] text-zinc-600 tracking-[0.1em] mt-1 font-semibold truncate uppercase font-bold">
+            <div className="text-[8px] sm:text-[9px] text-zinc-600 tracking-[0.1em] mt-1 font-semibold truncate uppercase">
               Authenticated as : <span className="text-red-600">{userRole}</span>
             </div>
           </div>
