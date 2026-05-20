@@ -7,6 +7,7 @@ import { getServerTime } from "@/lib/time";
 export default function BossModal({ boss, onClose, onSaved }) {
   const [currentScreen, setCurrentScreen] = useState("menu"); 
   const [confirmAction, setConfirmAction] = useState(null); 
+
   const [manualDate, setManualDate] = useState(""); 
   const [manualTime, setManualTime] = useState(""); 
   const [formattedOutput, setFormattedOutput] = useState(""); 
@@ -16,31 +17,48 @@ export default function BossModal({ boss, onClose, onSaved }) {
     const now = new Date(getServerTime()); 
     const offset = now.getTimezoneOffset() * 60000;
     const localISOTime = new Date(now.getTime() - offset).toISOString();
-    return { date: localISOTime.split("T")[0], time: localISOTime.split("T")[1].slice(0, 8) };
+    return {
+      date: localISOTime.split("T")[0],
+      time: localISOTime.split("T")[1].slice(0, 8),
+    };
   };
 
   const formatToGmt7 = (dateObj) => {
     const formatter = new Intl.DateTimeFormat("en-GB", {
-      timeZone: "Asia/Jakarta", day: "2-digit", month: "short", year: "numeric",
-      hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false,
+      timeZone: "Asia/Jakarta",
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
     });
     const parts = formatter.formatToParts(dateObj);
-    return `${parts.find(p => p.type === "day").value} ${parts.find(p => p.type === "month").value} ${parts.find(p => p.type === "year").value} ${parts.find(p => p.type === "hour").value}:${parts.find(p => p.type === "minute").value}:${parts.find(p => p.type === "second").value}`;
+    const d = parts.find(p => p.type === "day").value;
+    const m = parts.find(p => p.type === "month").value;
+    const y = parts.find(p => p.type === "year").value;
+    const time = `${parts.find(p => p.type === "hour").value}:${parts.find(p => p.type === "minute").value}:${parts.find(p => p.type === "second").value}`;
+    return `${d} ${m} ${y} ${time}`;
   };
 
   useEffect(() => {
     if (boss) {
       const now = getNowLocal();
-      setManualDate(now.date); setManualTime(now.time);
+      setManualDate(now.date);
+      setManualTime(now.time);
       setInitialState({ date: now.date, time: now.time });
-      setConfirmAction(null); setCurrentScreen("menu"); 
+      setConfirmAction(null);
+      setCurrentScreen("menu"); 
     }
   }, [boss]);
 
   useEffect(() => {
     if (manualDate && manualTime) {
       const combined = new Date(`${manualDate}T${manualTime}`); 
-      if (!isNaN(combined.getTime())) setFormattedOutput(formatToGmt7(combined));
+      if (!isNaN(combined.getTime())) {
+        setFormattedOutput(formatToGmt7(combined));
+      }
     }
   }, [manualDate, manualTime]);
 
@@ -48,10 +66,36 @@ export default function BossModal({ boss, onClose, onSaved }) {
 
   const executeAction = async () => {
     try {
-      let payload = { name: boss.name, interval_hours: boss.interval_hours, rarity: boss.rarity };
+      let payload = { 
+        name: boss.name,
+        interval_hours: boss.interval_hours,
+        rarity: boss.rarity 
+      };
 
-      if (confirmAction === 'justnow') payload.use_db_time = true;
-      else if (confirmAction === 'notspawned') payload.action = 'not_spawned';
+      if (confirmAction === 'justnow') {
+        payload.use_db_time = true;
+      } 
+      else if (confirmAction === 'notspawned') {
+        // Kalkulasi: Waktu Spawn Lama + Interval Boss
+        let spawnDateObj = new Date(boss.spawn);
+        if (isNaN(spawnDateObj.getTime())) {
+          const parts = boss.spawn.split(" ");
+          if (parts.length >= 4) {
+            const day = parts[0];
+            const monthStr = parts[1];
+            const year = parts[2];
+            const timePart = parts[3];
+            const monthMap = { jan:0, feb:1, mar:2, apr:3, may:4, jun:5, jul:6, aug:7, sep:8, oct:9, nov:10, dec:11 };
+            const month = monthMap[monthStr.toLowerCase()] ?? 0;
+            const [hh, mm, ss] = timePart.split(":");
+            spawnDateObj = new Date(year, month, day, hh, mm, ss);
+          }
+        }
+        spawnDateObj.setHours(spawnDateObj.getHours() + parseInt(boss.interval_hours || 0));
+        
+        payload.spawn = formatToGmt7(spawnDateObj);
+        payload.manual_spawn = true; // ✅ DIKEMBALIKAN KE manual_spawn AGAR DIKENALI BACKEND
+      }
       else if (confirmAction === 'manual_killed') {
         if (!isEdited) return;
         payload.killed = formattedOutput;
@@ -59,12 +103,18 @@ export default function BossModal({ boss, onClose, onSaved }) {
       else if (confirmAction === 'manual_spawn') {
         if (!isEdited) return;
         payload.spawn = formattedOutput;
-        payload.manual_spawn = true; 
+        payload.manual_spawn = true; // ✅ DIKEMBALIKAN KE manual_spawn
       }
 
-      onClose(); setConfirmAction(null);
-      if (onSaved) onSaved(payload);
-    } catch (err) { console.error("Action failed:", err); }
+      onClose();
+      setConfirmAction(null);
+
+      if (onSaved) {
+        onSaved(payload);
+      }
+    } catch (err) {
+      console.error("Action execution failed:", err);
+    }
   };
 
   return (
@@ -72,6 +122,7 @@ export default function BossModal({ boss, onClose, onSaved }) {
       {boss && (
         <motion.div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
           <motion.div className="bg-[#0b0b0b] border border-red-900/40 w-[95%] max-w-[340px] rounded-2xl p-4 relative shadow-2xl overflow-hidden font-inter" initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} onClick={(e) => e.stopPropagation()}>
+            
             <AnimatePresence>
               {confirmAction && (
                 <>
@@ -87,8 +138,10 @@ export default function BossModal({ boss, onClose, onSaved }) {
                 </>
               )}
             </AnimatePresence>
+
             <button onClick={onClose} className="absolute top-4 right-4 text-zinc-500 hover:text-red-600 transition text-xs z-10">✕</button>
             <div className="text-center text-red-600 font-black tracking-widest uppercase mb-1">{boss.name}</div>
+
             {currentScreen === "menu" && (
               <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="mt-4">
                 <div className="text-center text-[10px] text-zinc-400 uppercase tracking-[0.4em] mb-4 font-bold opacity-80">QUICK ACTION</div>
@@ -104,6 +157,7 @@ export default function BossModal({ boss, onClose, onSaved }) {
                 </div>
               </motion.div>
             )}
+
             {(currentScreen === "spawn" || currentScreen === "killed") && (
               <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="mt-4">
                 <div className="text-center text-[10px] text-zinc-400 uppercase tracking-[0.2em] mb-4 font-bold opacity-80">
@@ -114,9 +168,20 @@ export default function BossModal({ boss, onClose, onSaved }) {
                   <input type="time" step="1" value={manualTime} onChange={(e) => setManualTime(e.target.value)} className="w-full bg-black border border-zinc-900 rounded-lg px-1.5 py-2 text-[10px] text-white focus:border-red-800 outline-none transition font-mono accent-red-600" />
                   <button onClick={() => setConfirmAction(currentScreen === "spawn" ? "manual_spawn" : "manual_killed")} disabled={!isEdited} className={`font-black h-full px-3 min-w-[55px] rounded-lg transition uppercase tracking-widest text-[10px] shadow-lg ${isEdited ? "bg-red-700 hover:bg-red-600 text-white shadow-red-900/20" : "bg-zinc-900 text-zinc-700 cursor-not-allowed opacity-50"}`}>Save</button>
                 </div>
+                <div className="mt-3 min-h-[28px]">
+                  <AnimatePresence>
+                    {isEdited && formattedOutput && (
+                      <motion.div initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-center py-1 px-2 bg-zinc-950 border border-zinc-800 rounded-md">
+                        <span className="text-[9px] text-zinc-500 font-mono uppercase mr-2">New Time:</span>
+                        <span className="text-[11px] text-red-500 font-mono font-bold tracking-tight">{formattedOutput}</span>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
                 <button onClick={() => setCurrentScreen("menu")} className="w-full mt-2 text-center text-zinc-600 hover:text-zinc-400 font-bold text-[9px] uppercase tracking-widest transition-colors py-1">◀ Back To Menu</button>
               </motion.div>
             )}
+
           </motion.div>
         </motion.div>
       )}

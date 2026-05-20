@@ -1,6 +1,5 @@
 import { sql } from "@/lib/db";
 
-// 1. AMBIL SEMUA DATA BOSS
 export async function getAllBosses() {
   return await sql`SELECT * FROM bosses ORDER BY name ASC`;
 }
@@ -8,7 +7,6 @@ export async function getAllBosses() {
 // 2. UPDATE TIMER & ADD BOSS
 export async function saveBoss(data) {
   const { name, killed, spawn, interval_hours, use_db_time, rarity, action, manual_spawn } = data; 
-  // ✅ PERBAIKAN: Gunakan parseFloat agar interval 0.5 atau 1.5 terbaca benar
   const interval = parseFloat(interval_hours) || 1;
   const bossRarity = rarity || 'World';
 
@@ -25,18 +23,17 @@ export async function saveBoss(data) {
   // 🔥 LOGIKA "MANUAL SPAWN"
   if (manual_spawn) {
     return await sql`
-      INSERT INTO bosses (name, spawn, interval_hours, rarity)
-      VALUES (${name}, ${spawn}, ${interval}, ${bossRarity})
-      ON CONFLICT (name) 
-      DO UPDATE SET 
-        spawn = EXCLUDED.spawn,
-        interval_hours = EXCLUDED.interval_hours,
-        rarity = EXCLUDED.rarity
+      UPDATE bosses 
+      SET 
+        spawn = ${spawn},
+        interval_hours = ${interval},
+        rarity = ${bossRarity}
+      WHERE name = ${name}
       RETURNING *
     `;
   }
 
-  // 🔥 LOGIKA "JUST NOW"
+  // 🔥 LOGIKA "JUST NOW" (Insert Baru atau Update Semua)
   if (use_db_time) {
     return await sql`
       INSERT INTO bosses (name, killed, spawn, interval_hours, rarity)
@@ -57,7 +54,8 @@ export async function saveBoss(data) {
     `;
   }
 
-  // 🔥 LOGIKA DEFAULT (Manual Killed)
+  // 🔥 LOGIKA DEFAULT (Update Killed saja atau Insert)
+  // COALESCE digunakan agar data lama tidak tertimpa NULL jika data kiriman kosong
   return await sql`
     INSERT INTO bosses (name, killed, spawn, interval_hours, rarity)
     VALUES (
@@ -69,8 +67,8 @@ export async function saveBoss(data) {
     )
     ON CONFLICT (name) 
     DO UPDATE SET 
-      killed = EXCLUDED.killed,
-      spawn = EXCLUDED.spawn,
+      killed = COALESCE(EXCLUDED.killed, bosses.killed),
+      spawn = COALESCE(EXCLUDED.spawn, bosses.spawn),
       interval_hours = EXCLUDED.interval_hours,
       rarity = EXCLUDED.rarity
     RETURNING *
