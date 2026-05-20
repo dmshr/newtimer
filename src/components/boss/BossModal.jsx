@@ -7,11 +7,13 @@ import { getServerTime } from "@/lib/time";
 export default function BossModal({ boss, onClose, onSaved }) {
   const [currentScreen, setCurrentScreen] = useState("menu"); 
   const [confirmAction, setConfirmAction] = useState(null); 
-
   const [manualDate, setManualDate] = useState(""); 
   const [manualTime, setManualTime] = useState(""); 
   const [formattedOutput, setFormattedOutput] = useState(""); 
   const [initialState, setInitialState] = useState({ date: "", time: "" });
+  
+  // ✅ Proteksi Anti Klik Ganda
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const getNowLocal = () => {
     const now = new Date(getServerTime()); 
@@ -65,10 +67,13 @@ export default function BossModal({ boss, onClose, onSaved }) {
   const isEdited = manualDate !== initialState.date || manualTime !== initialState.time;
 
   const executeAction = async () => {
+    if (isSubmitting) return; // Mencegah execute ganda
+    setIsSubmitting(true);
+
     try {
       let payload = { 
-        name: boss.name,
-        interval_hours: boss.interval_hours,
+        name: boss.name, 
+        interval_hours: boss.interval_hours, 
         rarity: boss.rarity 
       };
 
@@ -76,44 +81,28 @@ export default function BossModal({ boss, onClose, onSaved }) {
         payload.use_db_time = true;
       } 
       else if (confirmAction === 'notspawned') {
-        // Kalkulasi: Waktu Spawn Lama + Interval Boss
-        let spawnDateObj = new Date(boss.spawn);
-        if (isNaN(spawnDateObj.getTime())) {
-          const parts = boss.spawn.split(" ");
-          if (parts.length >= 4) {
-            const day = parts[0];
-            const monthStr = parts[1];
-            const year = parts[2];
-            const timePart = parts[3];
-            const monthMap = { jan:0, feb:1, mar:2, apr:3, may:4, jun:5, jul:6, aug:7, sep:8, oct:9, nov:10, dec:11 };
-            const month = monthMap[monthStr.toLowerCase()] ?? 0;
-            const [hh, mm, ss] = timePart.split(":");
-            spawnDateObj = new Date(year, month, day, hh, mm, ss);
-          }
-        }
-        spawnDateObj.setHours(spawnDateObj.getHours() + parseInt(boss.interval_hours || 0));
-        
-        payload.spawn = formatToGmt7(spawnDateObj);
-        payload.manual_spawn = true; // ✅ DIKEMBALIKAN KE manual_spawn AGAR DIKENALI BACKEND
+        payload.action = 'not_spawned'; 
       }
       else if (confirmAction === 'manual_killed') {
-        if (!isEdited) return;
+        if (!isEdited) { setIsSubmitting(false); return; }
         payload.killed = formattedOutput;
       }
       else if (confirmAction === 'manual_spawn') {
-        if (!isEdited) return;
+        if (!isEdited) { setIsSubmitting(false); return; }
         payload.spawn = formattedOutput;
-        payload.manual_spawn = true; // ✅ DIKEMBALIKAN KE manual_spawn
+        payload.manual_spawn = true; 
       }
 
-      onClose();
+      onClose(); 
       setConfirmAction(null);
-
+      
       if (onSaved) {
-        onSaved(payload);
+        await onSaved(payload);
       }
-    } catch (err) {
-      console.error("Action execution failed:", err);
+    } catch (err) { 
+      console.error("Action failed:", err); 
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -131,8 +120,12 @@ export default function BossModal({ boss, onClose, onSaved }) {
                     <div className="text-red-600 font-black text-xl uppercase tracking-tighter mb-1 leading-none">{boss.name}</div>
                     <p className="text-zinc-500 text-[9px] uppercase tracking-[0.2em] font-bold mb-6">Confirm Update ?</p>
                     <div className="flex gap-3 w-full">
-                      <button onClick={() => setConfirmAction(null)} className="flex-1 py-3 bg-zinc-950 border border-zinc-800 rounded-xl text-zinc-500 font-bold text-[10px] uppercase hover:bg-red-700 hover:text-white hover:border-red-600 transition-all duration-200">CANCEL</button>
-                      <button onClick={executeAction} className="flex-1 py-3 bg-green-700 rounded-xl text-white font-black text-[10px] uppercase shadow-lg shadow-green-900/40 hover:bg-green-600 transition-all duration-200">UPDATE</button>
+                      <button onClick={() => setConfirmAction(null)} className="flex-1 py-3 bg-zinc-950 border border-zinc-800 rounded-xl text-zinc-500 font-bold text-[10px] uppercase hover:bg-red-700 hover:text-white hover:border-red-600 transition-all duration-200">
+                        CANCEL
+                      </button>
+                      <button onClick={executeAction} disabled={isSubmitting} className="flex-1 py-3 bg-green-700 rounded-xl text-white font-black text-[10px] uppercase shadow-lg shadow-green-900/40 hover:bg-green-600 transition-all duration-200 disabled:opacity-50">
+                        UPDATE
+                      </button>
                     </div>
                   </motion.div>
                 </>
@@ -152,8 +145,12 @@ export default function BossModal({ boss, onClose, onSaved }) {
                 <div className="mt-2 mb-5 h-[2px] w-full bg-gradient-to-r from-transparent via-red-500 to-transparent opacity-20" />
                 <div className="text-center text-[10px] text-zinc-400 uppercase tracking-[0.3em] mb-3 font-bold opacity-80">MANUAL EDIT</div>
                 <div className="grid grid-cols-2 gap-2">
-                  <button onClick={() => { setCurrentScreen("spawn"); const now = getNowLocal(); setManualDate(now.date); setManualTime(now.time); setInitialState({ date: now.date, time: now.time }); }} className="w-full bg-black/40 border border-red-700/40 hover:bg-red-700 text-zinc-300 hover:text-white font-bold py-3 px-1 rounded-xl text-[9px] uppercase tracking-wider shadow-[0_0_10px_rgba(185,28,28,0.05)] hover:shadow-[0_0_15px_rgba(185,28,28,0.4)] transition-all duration-200 outline-none">⚙️ Spawn Time</button>
-                  <button onClick={() => { setCurrentScreen("killed"); const now = getNowLocal(); setManualDate(now.date); setManualTime(now.time); setInitialState({ date: now.date, time: now.time }); }} className="w-full bg-black/40 border border-red-700/40 hover:bg-red-700 text-zinc-300 hover:text-white font-bold py-3 px-1 rounded-xl text-[9px] uppercase tracking-wider shadow-[0_0_10px_rgba(185,28,28,0.05)] hover:shadow-[0_0_15px_rgba(185,28,28,0.4)] transition-all duration-200 outline-none">💀 Killed Time</button>
+                  <button onClick={() => { setCurrentScreen("spawn"); const now = getNowLocal(); setManualDate(now.date); setManualTime(now.time); setInitialState({ date: now.date, time: now.time }); }} className="w-full bg-black/40 border border-red-700/40 hover:bg-red-700 text-zinc-300 hover:text-white font-bold py-3 px-1 rounded-xl text-[9px] uppercase tracking-wider shadow-[0_0_10px_rgba(185,28,28,0.05)] hover:shadow-[0_0_15px_rgba(185,28,28,0.4)] transition-all duration-200 outline-none">
+                    ⚙️ Spawn Time
+                  </button>
+                  <button onClick={() => { setCurrentScreen("killed"); const now = getNowLocal(); setManualDate(now.date); setManualTime(now.time); setInitialState({ date: now.date, time: now.time }); }} className="w-full bg-black/40 border border-red-700/40 hover:bg-red-700 text-zinc-300 hover:text-white font-bold py-3 px-1 rounded-xl text-[9px] uppercase tracking-wider shadow-[0_0_10px_rgba(185,28,28,0.05)] hover:shadow-[0_0_15px_rgba(185,28,28,0.4)] transition-all duration-200 outline-none">
+                    💀 Killed Time
+                  </button>
                 </div>
               </motion.div>
             )}
@@ -164,9 +161,26 @@ export default function BossModal({ boss, onClose, onSaved }) {
                   {currentScreen === "spawn" ? "MANUAL SPAWN TIME INPUT" : "MANUAL KILLED TIME INPUT"}
                 </div>
                 <div className="grid grid-cols-[1fr_1fr_auto] gap-1.5 items-center">
-                  <input type="date" value={manualDate} onChange={(e) => setManualDate(e.target.value)} className="w-full bg-black border border-zinc-900 rounded-lg px-1 py-2 text-[10px] text-white focus:border-red-800 outline-none transition font-mono accent-red-600" />
-                  <input type="time" step="1" value={manualTime} onChange={(e) => setManualTime(e.target.value)} className="w-full bg-black border border-zinc-900 rounded-lg px-1.5 py-2 text-[10px] text-white focus:border-red-800 outline-none transition font-mono accent-red-600" />
-                  <button onClick={() => setConfirmAction(currentScreen === "spawn" ? "manual_spawn" : "manual_killed")} disabled={!isEdited} className={`font-black h-full px-3 min-w-[55px] rounded-lg transition uppercase tracking-widest text-[10px] shadow-lg ${isEdited ? "bg-red-700 hover:bg-red-600 text-white shadow-red-900/20" : "bg-zinc-900 text-zinc-700 cursor-not-allowed opacity-50"}`}>Save</button>
+                  <input 
+                    type="date" 
+                    value={manualDate} 
+                    onChange={(e) => setManualDate(e.target.value)} 
+                    className="w-full bg-black border border-zinc-900 rounded-lg px-1 py-2 text-[10px] text-white focus:border-red-800 outline-none transition font-mono accent-red-600" 
+                  />
+                  <input 
+                    type="time" 
+                    step="1" 
+                    value={manualTime} 
+                    onChange={(e) => setManualTime(e.target.value)} 
+                    className="w-full bg-black border border-zinc-900 rounded-lg px-1.5 py-2 text-[10px] text-white focus:border-red-800 outline-none transition font-mono accent-red-600" 
+                  />
+                  <button 
+                    onClick={() => setConfirmAction(currentScreen === "spawn" ? "manual_spawn" : "manual_killed")} 
+                    disabled={!isEdited} 
+                    className={`font-black h-full px-3 min-w-[55px] rounded-lg transition uppercase tracking-widest text-[10px] shadow-lg ${isEdited ? "bg-red-700 hover:bg-red-600 text-white shadow-red-900/20" : "bg-zinc-900 text-zinc-700 cursor-not-allowed opacity-50"}`}
+                  >
+                    Save
+                  </button>
                 </div>
                 <div className="mt-3 min-h-[28px]">
                   <AnimatePresence>
@@ -178,7 +192,9 @@ export default function BossModal({ boss, onClose, onSaved }) {
                     )}
                   </AnimatePresence>
                 </div>
-                <button onClick={() => setCurrentScreen("menu")} className="w-full mt-2 text-center text-zinc-600 hover:text-zinc-400 font-bold text-[9px] uppercase tracking-widest transition-colors py-1">◀ Back To Menu</button>
+                <button onClick={() => setCurrentScreen("menu")} className="w-full mt-2 text-center text-zinc-600 hover:text-zinc-400 font-bold text-[9px] uppercase tracking-widest transition-colors py-1">
+                  ◀ Back To Menu
+                </button>
               </motion.div>
             )}
 

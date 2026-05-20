@@ -23,8 +23,9 @@ export default function BossRow({ boss, onSelect, onEdit, onDelete, animateInvas
   const [hasAlerted, setHasAlerted] = useState(false);
 
   // ─── STATE SINKRONISASI INDIKATOR LAMPU & ANTRIAN ──────────────────
-  const [syncStatus, setSyncStatus] = useState("idle"); // 'idle' | 'sending' | 'success' | 'error'
+  const [syncStatus, setSyncStatus] = useState("idle"); 
   const [lastPayload, setLastPayload] = useState(null);
+  const [autoUpdateLocked, setAutoUpdateLocked] = useState(false); // ✅ Kunci Gembok Auto Update
   const timeoutRef = useRef(null);
 
   const formatOnlyTime = (fullStr) => {
@@ -33,49 +34,15 @@ export default function BossRow({ boss, onSelect, onEdit, onDelete, animateInvas
     return parts[parts.length - 1];
   };
 
-  // ─── SIKLUS UTAMA LOOP TIMER DAN EVALUASI STATUS RESET LAMPU ───────
+  // ─── 1. SIKLUS UTAMA LOOP TIMER VISUAL ───────
   useEffect(() => {
     const update = () => {
       const countdown = getCountdown(boss.spawn);
       setTime(countdown);
 
       if (countdown) {
-        // ✅ EVALUASI RESET: Jika Boss telah SPAWNED atau sisa detiknya <= 0,
-        // otomatis reset status lampu sukses kembali menjadi redup ('idle') untuk siklus hidup berikutnya.
         if (countdown.label === "SPAWNED" || countdown.seconds <= 0) {
           setSyncStatus((current) => (current === "success" ? "idle" : current));
-        }
-
-        // 🚀 SEKALIGUS FITUR AUTO UPDATE JIKA OVERDUE (LEWAT JADWAL RESPAWN)
-        if (countdown.seconds <= 0) {
-          const secondsPastSpawn = Math.abs(countdown.seconds);
-          let maxWaitSeconds = 5 * 60; // Nilai bawaan standard: 5 menit
-          const rarityLower = boss.rarity?.toLowerCase() || "";
-
-          // 1. Klasifikasi Durasi Tunggu Berdasarkan Kelangkaan (Rarity)
-          if (rarityLower.includes("rare") || rarityLower.includes("blue") || rarityLower.includes("mini") || rarityLower.includes("cyan")) {
-            maxWaitSeconds = 3 * 60; // RARE (BLUE): 3 Menit
-          } 
-          else if (rarityLower.includes("epic") || rarityLower.includes("red") || rarityLower.includes("invasi") || rarityLower.includes("invasion") || rarityLower.includes("orange")) {
-            maxWaitSeconds = 5 * 60; // EPIC (RED) & INVASI (ORANGE): 5 Menit
-          } 
-          else if (rarityLower.includes("legendary") || rarityLower.includes("purple")) {
-            maxWaitSeconds = 10 * 60; // LEGENDARY (PURPLE): 10 Menit
-          }
-
-          // 2. Eksekusi Trigger Latar Belakang jika Melebihi Batas & Tidak Ada Interaksi User (Status Idle)
-          if (secondsPastSpawn >= maxWaitSeconds && syncStatus === "idle") {
-            console.log(`[Auto Update] System triggered update for ${boss.name}`);
-            
-            const autoPayload = {
-              name: boss.name,
-              interval_hours: boss.interval_hours,
-              rarity: boss.rarity,
-              use_db_time: true // Logika setara klik tombol "Just Now"
-            };
-
-            triggerBackgroundUpdate(autoPayload);
-          }
         }
       }
     };
@@ -83,7 +50,48 @@ export default function BossRow({ boss, onSelect, onEdit, onDelete, animateInvas
     update();
     const interval = setInterval(update, 1000);
     return () => clearInterval(interval);
-  }, [boss.spawn, boss.name, boss.interval_hours, boss.rarity, syncStatus]);
+  }, [boss.spawn]);
+
+  // ✅ Buka Gembok jika spawn time di database telah berubah (Di-refresh)
+  useEffect(() => {
+    setAutoUpdateLocked(false);
+    setSyncStatus("idle");
+  }, [boss.spawn]);
+
+  // ─── 2. SISTEM AUTO UPDATE LATAR BELAKANG (ANTI-LOOP) ───────
+  useEffect(() => {
+    if (time && time.seconds <= 0 && !autoUpdateLocked) {
+      const secondsPastSpawn = Math.abs(time.seconds);
+      let maxWaitSeconds = 5 * 60; // 5 Menit
+      const rarityLower = boss.rarity?.toLowerCase() || "";
+
+      if (rarityLower.includes("rare") || rarityLower.includes("blue") || rarityLower.includes("mini") || rarityLower.includes("cyan")) {
+        maxWaitSeconds = 3 * 60; 
+      } 
+      else if (rarityLower.includes("epic") || rarityLower.includes("red") || rarityLower.includes("invasi") || rarityLower.includes("invasion") || rarityLower.includes("orange")) {
+        maxWaitSeconds = 5 * 60; 
+      } 
+      else if (rarityLower.includes("legendary") || rarityLower.includes("purple")) {
+        maxWaitSeconds = 10 * 60; 
+      }
+
+      if (secondsPastSpawn >= maxWaitSeconds) {
+        console.log(`[Auto Update] System triggered update for ${boss.name}`);
+        
+        // 🔒 Kunci Gembok! Fungsi ini hanya akan berjalan sekali
+        setAutoUpdateLocked(true); 
+        
+        const autoPayload = {
+          name: boss.name,
+          interval_hours: boss.interval_hours,
+          rarity: boss.rarity,
+          use_db_time: true
+        };
+
+        triggerBackgroundUpdate(autoPayload);
+      }
+    }
+  }, [time, autoUpdateLocked, boss]);
 
   useEffect(() => {
     if (time && time.seconds === 59 && !hasAlerted) {
@@ -93,25 +101,21 @@ export default function BossRow({ boss, onSelect, onEdit, onDelete, animateInvas
     if (time && time.seconds >= 60) setHasAlerted(false);
   }, [time?.seconds, hasAlerted, playAlert]);
 
-  // ─── INDEPENDENT BACKGROUND HANDLING & RE-ACTIVATION LOGIC ─────────
+  // ─── 3. INDEPENDENT BACKGROUND HANDLING ─────────
   const triggerBackgroundUpdate = async (payload) => {
-    // ✅ AKTIVASI ULANG: Setiap kali update time dipicu (baik via modal / klik retry), 
-    // hapus timeout lama dan nyalakan lampu kuning memproses kembali dari awal.
     setSyncStatus("sending");
     setLastPayload(payload);
 
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
 
-    // Pasang bom waktu pemutus (5 Menit = 5 * 60 * 1000 ms = 300000ms)
+    // Timeout Error jika database mati
     timeoutRef.current = setTimeout(() => {
       setSyncStatus("error");
     }, 5 * 60 * 1000);
 
     try {
       const res = await updateBoss(payload);
-      if (res && res.success) {
-        // ✅ KUNCI STATUS SUKSES: Tidak kembali ke idle secara otomatis. 
-        // Menyala hijau permanen mengawal data sampai waktu hitung mundur habis (spawn).
+      if (res && res.success !== false) {
         setSyncStatus("success");
         if (timeoutRef.current) clearTimeout(timeoutRef.current);
       } else {
@@ -189,7 +193,7 @@ export default function BossRow({ boss, onSelect, onEdit, onDelete, animateInvas
               : 'text-zinc-200'
           } 
           text-[14px] sm:text-sm md:text-xl font-mono font-bold tracking-tighter transition-all
-          flex justify-end
+          flex justify-end w-full
         `}>
           {isSpawned ? (
             <span className="w-full text-right">{label}</span>
@@ -225,7 +229,6 @@ export default function BossRow({ boss, onSelect, onEdit, onDelete, animateInvas
         {/* ─── INDIKATOR SINKRONISASI REAKTIF PER SIKLUS HIDUP ─── */}
         <div className="relative group flex items-center justify-center w-5 h-5 ml-0.5">
           
-          {/* 1. STATUS SENDING / MEMPROSES (Kuning Berkedip) */}
           {syncStatus === "sending" && (
             <>
               <div className="w-2.5 h-2.5 bg-amber-500 rounded-full animate-pulse" />
@@ -235,7 +238,6 @@ export default function BossRow({ boss, onSelect, onEdit, onDelete, animateInvas
             </>
           )}
 
-          {/* 2. STATUS SUCCESS / BERHASIL (Hijau Tebal - Terkunci Mengawal Data) */}
           {syncStatus === "success" && (
             <>
               <div className="w-2.5 h-2.5 bg-green-500 rounded-full shadow-[0_0_8px_rgba(34,197,94,0.6)]" />
@@ -245,7 +247,6 @@ export default function BossRow({ boss, onSelect, onEdit, onDelete, animateInvas
             </>
           )}
 
-          {/* 3. STATUS ERROR / TIMEOUT (Lampu Berubah Menjadi Tombol Retry Merah) */}
           {syncStatus === "error" && (
             <>
               <button
@@ -262,7 +263,6 @@ export default function BossRow({ boss, onSelect, onEdit, onDelete, animateInvas
             </>
           )}
 
-          {/* 4. STATUS IDLE / REDUP AWAL */}
           {syncStatus === "idle" && (
             <div className="w-2.5 h-2.5 bg-zinc-800 rounded-full opacity-20" />
           )}
