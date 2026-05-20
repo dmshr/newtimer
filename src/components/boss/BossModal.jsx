@@ -5,9 +5,11 @@ import { useState, useEffect } from "react";
 import { getServerTime } from "@/lib/time"; 
 
 export default function BossModal({ boss, onClose, onSaved }) {
+  // ─── STATE MANAJEMEN LAYAR MODAL ──────────────────────────────────
   const [currentScreen, setCurrentScreen] = useState("menu"); 
   const [confirmAction, setConfirmAction] = useState(null); 
 
+  // State Input Manual
   const [manualDate, setManualDate] = useState(""); 
   const [manualTime, setManualTime] = useState(""); 
   const [formattedOutput, setFormattedOutput] = useState(""); 
@@ -75,26 +77,57 @@ export default function BossModal({ boss, onClose, onSaved }) {
       if (confirmAction === 'justnow') {
         payload.use_db_time = true;
       } 
+      // 🚀 LOGIKA NOT SPAWNED ANTI-RUSAK (MATHEMATICAL STRING PARSING)
       else if (confirmAction === 'notspawned') {
-        // Kalkulasi: Waktu Spawn Lama + Interval Boss
-        let spawnDateObj = new Date(boss.spawn);
-        if (isNaN(spawnDateObj.getTime())) {
-          const parts = boss.spawn.split(" ");
-          if (parts.length >= 4) {
-            const day = parts[0];
-            const monthStr = parts[1];
-            const year = parts[2];
-            const timePart = parts[3];
-            const monthMap = { jan:0, feb:1, mar:2, apr:3, may:4, jun:5, jul:6, aug:7, sep:8, oct:9, nov:10, dec:11 };
-            const month = monthMap[monthStr.toLowerCase()] ?? 0;
-            const [hh, mm, ss] = timePart.split(":");
-            spawnDateObj = new Date(year, month, day, hh, mm, ss);
-          }
+        // 1. Cegah eksekusi jika boss belum memiliki waktu spawn
+        if (!boss.spawn || boss.spawn === "--:--:--") {
+          setConfirmAction(null);
+          return;
         }
-        spawnDateObj.setHours(spawnDateObj.getHours() + parseInt(boss.interval_hours || 0));
-        
-        payload.spawn = formatToGmt7(spawnDateObj);
-        payload.manual_spawn = true; // ✅ DIKEMBALIKAN KE manual_spawn AGAR DIKENALI BACKEND
+
+        const parts = boss.spawn.split(" ");
+        if (parts.length >= 4) {
+          const day = parseInt(parts[0], 10);
+          const monthMap = { jan:0, feb:1, mar:2, apr:3, may:4, jun:5, jul:6, aug:7, sep:8, oct:9, nov:10, dec:11 };
+          const monthStr = parts[1].toLowerCase();
+          const month = monthMap[monthStr] !== undefined ? monthMap[monthStr] : 0;
+          const year = parseInt(parts[2], 10);
+          
+          const timeParts = parts[3].split(":");
+          const hh = parseInt(timeParts[0] || 0, 10);
+          const mm = parseInt(timeParts[1] || 0, 10);
+          const ss = parseInt(timeParts[2] || 0, 10);
+
+          // 2. Gunakan mode UTC murni sebagai kalkulator agar angka tidak meleset akibat zona waktu browser
+          const calcDate = new Date(Date.UTC(year, month, day, hh, mm, ss));
+          
+          // 3. Kalkulasi interval menit (Mendukung jam penuh maupun desimal koma)
+          let addMins = 0;
+          if (typeof boss.interval_hours === "string" && boss.interval_hours.includes(":")) {
+              const [ih, im] = boss.interval_hours.split(":").map(Number);
+              addMins = (ih * 60) + (im || 0);
+          } else {
+              addMins = Math.round(parseFloat(boss.interval_hours || 0) * 60);
+          }
+
+          calcDate.setUTCMinutes(calcDate.getUTCMinutes() + addMins);
+
+          // 4. Rangkai kembali menjadi string secara manual
+          const outDay = String(calcDate.getUTCDate()).padStart(2, '0');
+          const outMonthMap = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+          const outMonth = outMonthMap[calcDate.getUTCMonth()];
+          const outYear = calcDate.getUTCFullYear();
+          const outH = String(calcDate.getUTCHours()).padStart(2, '0');
+          const outM = String(calcDate.getUTCMinutes()).padStart(2, '0');
+          const outS = String(calcDate.getUTCSeconds()).padStart(2, '0');
+
+          payload.spawn = `${outDay} ${outMonth} ${outYear} ${outH}:${outM}:${outS}`;
+          payload.manual_spawn = true; // Kunci valid agar backend menimpa kolom Spawn tanpa menyentuh Killed
+        } else {
+          console.error("Format waktu Spawn tidak dapat dikenali:", boss.spawn);
+          setConfirmAction(null);
+          return;
+        }
       }
       else if (confirmAction === 'manual_killed') {
         if (!isEdited) return;
@@ -103,12 +136,14 @@ export default function BossModal({ boss, onClose, onSaved }) {
       else if (confirmAction === 'manual_spawn') {
         if (!isEdited) return;
         payload.spawn = formattedOutput;
-        payload.manual_spawn = true; // ✅ DIKEMBALIKAN KE manual_spawn
+        payload.manual_spawn = true; 
       }
 
+      // Tutup modal secara instan
       onClose();
       setConfirmAction(null);
 
+      // Tembakkan payload sempurna ke luar (menuju BossList -> BossRow)
       if (onSaved) {
         onSaved(payload);
       }
