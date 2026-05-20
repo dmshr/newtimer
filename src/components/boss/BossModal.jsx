@@ -5,11 +5,9 @@ import { useState, useEffect } from "react";
 import { getServerTime } from "@/lib/time"; 
 
 export default function BossModal({ boss, onClose, onSaved }) {
-  // ─── STATE MANAJEMEN LAYAR MODAL ──────────────────────────────────
-  const [currentScreen, setCurrentScreen] = useState("menu"); // 'menu' | 'spawn' | 'killed'
-  const [confirmAction, setConfirmAction] = useState(null); // 'justnow' | 'notspawned' | 'manual_spawn' | 'manual_killed'
+  const [currentScreen, setCurrentScreen] = useState("menu"); 
+  const [confirmAction, setConfirmAction] = useState(null); 
 
-  // State Input Manual
   const [manualDate, setManualDate] = useState(""); 
   const [manualTime, setManualTime] = useState(""); 
   const [formattedOutput, setFormattedOutput] = useState(""); 
@@ -44,7 +42,6 @@ export default function BossModal({ boss, onClose, onSaved }) {
     return `${d} ${m} ${y} ${time}`;
   };
 
-  // Reset keadaan modal setiap kali Boss baru dibuka
   useEffect(() => {
     if (boss) {
       const now = getNowLocal();
@@ -56,7 +53,6 @@ export default function BossModal({ boss, onClose, onSaved }) {
     }
   }, [boss]);
 
-  // Efek sinkronisasi teks pratinjau (Preview) waktu manual
   useEffect(() => {
     if (manualDate && manualTime) {
       const combined = new Date(`${manualDate}T${manualTime}`); 
@@ -76,26 +72,38 @@ export default function BossModal({ boss, onClose, onSaved }) {
         rarity: boss.rarity 
       };
 
-      // ─── LOGIKA PEMISAHAN DATA BACKEND (SINKRONISASI REKREASI) ───
       if (confirmAction === 'justnow') {
         payload.use_db_time = true;
       } 
       else if (confirmAction === 'notspawned') {
-        payload.killed = boss.spawn; 
+        let spawnDateObj = new Date(boss.spawn);
+        if (isNaN(spawnDateObj.getTime())) {
+          const parts = boss.spawn.split(" ");
+          if (parts.length >= 4) {
+            const day = parts[0];
+            const monthStr = parts[1];
+            const year = parts[2];
+            const timePart = parts[3];
+            const monthMap = { jan:0, feb:1, mar:2, apr:3, may:4, jun:5, jul:6, aug:7, sep:8, oct:9, nov:10, dec:11 };
+            const month = monthMap[monthStr.toLowerCase()] ?? 0;
+            const [hh, mm, ss] = timePart.split(":");
+            spawnDateObj = new Date(year, month, day, hh, mm, ss);
+          }
+        }
+        spawnDateObj.setHours(spawnDateObj.getHours() + parseInt(boss.interval_hours || 0));
+        payload.spawn = formatToGmt7(spawnDateObj);
+        payload.only_update_spawn = true; 
       }
-      // FUNGSI 2: Mengubah waktu di-kill, otomatis memicu kalkulasi interval spawn di server
       else if (confirmAction === 'manual_killed') {
         if (!isEdited) return;
         payload.killed = formattedOutput;
       }
-      // FUNGSI 1: Hanya memperbarui penanda waktu spawn secara statis di database
       else if (confirmAction === 'manual_spawn') {
         if (!isEdited) return;
         payload.spawn = formattedOutput;
-        payload.only_update_spawn = true; // Flag penahan agar backend tidak merusak data killed lama
+        payload.only_update_spawn = true; 
       }
 
-      // Tutup modal instan (Non-blocking UI)
       onClose();
       setConfirmAction(null);
 
@@ -113,7 +121,6 @@ export default function BossModal({ boss, onClose, onSaved }) {
         <motion.div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
           <motion.div className="bg-[#0b0b0b] border border-red-900/40 w-[95%] max-w-[340px] rounded-2xl p-4 relative shadow-2xl overflow-hidden font-inter" initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} onClick={(e) => e.stopPropagation()}>
             
-            {/* ─── LAYER DRAWER: KONFIRMASI AKSES ────────────────── */}
             <AnimatePresence>
               {confirmAction && (
                 <>
@@ -130,83 +137,35 @@ export default function BossModal({ boss, onClose, onSaved }) {
               )}
             </AnimatePresence>
 
-            {/* ✕ TOMBOL CLOSE UTAMA */}
             <button onClick={onClose} className="absolute top-4 right-4 text-zinc-500 hover:text-red-600 transition text-xs z-10">✕</button>
-
-            {/* HEADER BRANDING MODAL */}
             <div className="text-center text-red-600 font-black tracking-widest uppercase mb-1">{boss.name}</div>
 
-            {/* ─── KONDISI SCREEN 1: LAYAR UTAMA (MENU UTAMA) ────────────────────── */}
             {currentScreen === "menu" && (
               <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="mt-4">
                 <div className="text-center text-[10px] text-zinc-400 uppercase tracking-[0.4em] mb-4 font-bold opacity-80">QUICK ACTION</div>
-                
-                {/* Aksi Cepat */}
                 <div className="flex gap-3 mb-5">
                   <button onClick={() => setConfirmAction('notspawned')} className="flex-1 bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-zinc-400 font-bold py-3 rounded-lg text-[10px] uppercase tracking-wider transition">Not Spawned</button>
                   <button onClick={() => setConfirmAction('justnow')} className="flex-1 bg-green-950/30 border border-green-900/50 hover:bg-green-950/50 text-green-500 font-bold py-3 rounded-lg text-[10px] uppercase tracking-wider transition">Just Now</button>
                 </div>
-
                 <div className="mt-2 mb-5 h-[2px] w-full bg-gradient-to-r from-transparent via-red-500 to-transparent opacity-20" />
                 <div className="text-center text-[10px] text-zinc-400 uppercase tracking-[0.3em] mb-3 font-bold opacity-80">MANUAL EDIT</div>
-
-                {/* Tombol Berjajar Horizontal + Lampu Neon Glow Hover */}
                 <div className="grid grid-cols-2 gap-2">
-                  <button 
-                    onClick={() => { setCurrentScreen("spawn"); const now = getNowLocal(); setManualDate(now.date); setManualTime(now.time); setInitialState({ date: now.date, time: now.time }); }}
-                    className="w-full bg-black/40 border border-red-700/40 hover:bg-red-700 text-zinc-300 hover:text-white font-bold py-3 px-1 rounded-xl text-[9px] uppercase tracking-wider shadow-[0_0_10px_rgba(185,28,28,0.05)] hover:shadow-[0_0_15px_rgba(185,28,28,0.4)] transition-all duration-200 outline-none"
-                  >
-                    ⚙️ Spawn Time
-                  </button>
-                  <button 
-                    onClick={() => { setCurrentScreen("killed"); const now = getNowLocal(); setManualDate(now.date); setManualTime(now.time); setInitialState({ date: now.date, time: now.time }); }}
-                    className="w-full bg-black/40 border border-red-700/40 hover:bg-red-700 text-zinc-300 hover:text-white font-bold py-3 px-1 rounded-xl text-[9px] uppercase tracking-wider shadow-[0_0_10px_rgba(185,28,28,0.05)] hover:shadow-[0_0_15px_rgba(185,28,28,0.4)] transition-all duration-200 outline-none"
-                  >
-                    💀 Killed Time
-                  </button>
+                  <button onClick={() => { setCurrentScreen("spawn"); const now = getNowLocal(); setManualDate(now.date); setManualTime(now.time); setInitialState({ date: now.date, time: now.time }); }} className="w-full bg-black/40 border border-red-700/40 hover:bg-red-700 text-zinc-300 hover:text-white font-bold py-3 px-1 rounded-xl text-[9px] uppercase tracking-wider shadow-[0_0_10px_rgba(185,28,28,0.05)] hover:shadow-[0_0_15px_rgba(185,28,28,0.4)] transition-all duration-200 outline-none">⚙️ Spawn Time</button>
+                  <button onClick={() => { setCurrentScreen("killed"); const now = getNowLocal(); setManualDate(now.date); setManualTime(now.time); setInitialState({ date: now.date, time: now.time }); }} className="w-full bg-black/40 border border-red-700/40 hover:bg-red-700 text-zinc-300 hover:text-white font-bold py-3 px-1 rounded-xl text-[9px] uppercase tracking-wider shadow-[0_0_10px_rgba(185,28,28,0.05)] hover:shadow-[0_0_15px_rgba(185,28,28,0.4)] transition-all duration-200 outline-none">💀 Killed Time</button>
                 </div>
               </motion.div>
             )}
 
-            {/* ─── KONDISI SCREEN 2 & 3: SUB-UI POPUP MANUAL INPUT TIME ───────────── */}
             {(currentScreen === "spawn" || currentScreen === "killed") && (
               <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="mt-4">
-                
-                {/* Judul Sub-UI Reaktif Tergantung Pilihan */}
                 <div className="text-center text-[10px] text-zinc-400 uppercase tracking-[0.2em] mb-4 font-bold opacity-80">
                   {currentScreen === "spawn" ? "MANUAL SPAWN TIME INPUT" : "MANUAL KILLED TIME INPUT"}
                 </div>
-
                 <div className="grid grid-cols-[1fr_1fr_auto] gap-1.5 items-center">
-                  <input 
-                    type="date"
-                    value={manualDate}
-                    onChange={(e) => setManualDate(e.target.value)}
-                    className="w-full bg-black border border-zinc-900 rounded-lg px-1 py-2 text-[10px] text-white focus:border-red-800 outline-none transition font-mono accent-red-600"
-                  />
-
-                  <input 
-                    type="time"
-                    step="1" 
-                    value={manualTime}
-                    onChange={(e) => setManualTime(e.target.value)}
-                    className="w-full bg-black border border-zinc-900 rounded-lg px-1.5 py-2 text-[10px] text-white focus:border-red-800 outline-none transition font-mono accent-red-600"
-                  />
-
-                  <button 
-                    onClick={() => setConfirmAction(currentScreen === "spawn" ? "manual_spawn" : "manual_killed")} 
-                    disabled={!isEdited}
-                    className={`font-black h-full px-3 min-w-[55px] rounded-lg transition uppercase tracking-widest text-[10px] shadow-lg ${
-                      isEdited 
-                      ? "bg-red-700 hover:bg-red-600 text-white shadow-red-900/20" 
-                      : "bg-zinc-900 text-zinc-700 cursor-not-allowed opacity-50"
-                    }`}
-                  >
-                    Save
-                  </button>
+                  <input type="date" value={manualDate} onChange={(e) => setManualDate(e.target.value)} className="w-full bg-black border border-zinc-900 rounded-lg px-1 py-2 text-[10px] text-white focus:border-red-800 outline-none transition font-mono accent-red-600" />
+                  <input type="time" step="1" value={manualTime} onChange={(e) => setManualTime(e.target.value)} className="w-full bg-black border border-zinc-900 rounded-lg px-1.5 py-2 text-[10px] text-white focus:border-red-800 outline-none transition font-mono accent-red-600" />
+                  <button onClick={() => setConfirmAction(currentScreen === "spawn" ? "manual_spawn" : "manual_killed")} disabled={!isEdited} className={`font-black h-full px-3 min-w-[55px] rounded-lg transition uppercase tracking-widest text-[10px] shadow-lg ${isEdited ? "bg-red-700 hover:bg-red-600 text-white shadow-red-900/20" : "bg-zinc-900 text-zinc-700 cursor-not-allowed opacity-50"}`}>Save</button>
                 </div>
-
-                {/* Preview Teks Waktu Baru */}
                 <div className="mt-3 min-h-[28px]">
                   <AnimatePresence>
                     {isEdited && formattedOutput && (
@@ -217,14 +176,7 @@ export default function BossModal({ boss, onClose, onSaved }) {
                     )}
                   </AnimatePresence>
                 </div>
-
-                {/* Tombol Back untuk Kembali ke Menu Utama Modal */}
-                <button 
-                  onClick={() => setCurrentScreen("menu")}
-                  className="w-full mt-2 text-center text-zinc-600 hover:text-zinc-400 font-bold text-[9px] uppercase tracking-widest transition-colors py-1"
-                >
-                  ◀ Back To Menu
-                </button>
+                <button onClick={() => setCurrentScreen("menu")} className="w-full mt-2 text-center text-zinc-600 hover:text-zinc-400 font-bold text-[9px] uppercase tracking-widest transition-colors py-1">◀ Back To Menu</button>
               </motion.div>
             )}
 

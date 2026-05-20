@@ -27,6 +27,9 @@ export default function Header() {
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
   const [showAnnounceInput, setShowAnnounceInput] = useState(false);
   const [tempAnnounce, setTempAnnounce] = useState("");
+  
+  // State untuk animasi loading tombol Cek Update
+  const [isCheckingUpdate, setIsCheckingUpdate] = useState(false);
 
   const searchRef = useRef(null);
   const toggleRef = useRef(null);
@@ -36,7 +39,7 @@ export default function Header() {
   const userRole = session?.user?.role || "User";
   const isLoginPage = pathname === "/login";
   const canManage = ["Admin", "SuperAdmin", "Master"].includes(userRole);
-  const isMaster = userRole === "Master";
+  const isMaster = userRole === "Master"; // Proteksi role Master
   const queryValue = searchParams.get("q") || "";
 
   const currentView = searchParams.get("view") || "boss";
@@ -64,12 +67,12 @@ export default function Header() {
     setIsMenuOpen(false);
   };
 
-  // ✅ KEMBALIKAN FUNGSI CTRL + F
+  // KEMBALIKAN FUNGSI CTRL + F
   useEffect(() => {
     const handleKeyDown = (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key === "f") {
-        e.preventDefault(); // Mencegah browser buka search bawaan
-        setIsMenuOpen(false); // Tutup menu jika terbuka
+        e.preventDefault(); 
+        setIsMenuOpen(false); 
         setShowAnnounceInput(false);
         setShowSearch(true);
         setTimeout(() => inputRef.current?.focus(), 100);
@@ -137,6 +140,19 @@ export default function Header() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ key: "announcement_text", value: "" }),
     });
+  };
+
+  // Fungsi Pemicu Sinyal Real-time Update (Megafon Pusher)
+  const handleTriggerUpdate = async () => {
+    setIsCheckingUpdate(true);
+    try {
+      await fetch("/api/trigger-update", { method: "POST" });
+      setIsMenuOpen(false); 
+    } catch (error) {
+      console.error("Failed to trigger update:", error);
+    } finally {
+      setIsCheckingUpdate(false);
+    }
   };
 
   if (isLoginPage) return null;
@@ -241,6 +257,22 @@ export default function Header() {
                 {isMaster && (
                   <button onClick={() => { setIsRegisterOpen(true); setIsMenuOpen(false); }} className="flex items-center gap-1.5 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 px-2 py-1 rounded-xl text-[9px] font-black uppercase text-zinc-400 hover:text-white transition-all">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" x2="19" y1="8" y2="14"/><line x1="22" x2="16" y1="11" y2="11"/></svg> Register
+                  </button>
+                )}
+                
+                {/* ✅ LOCKING FILTER: Tombol Cek Update dibatasi murni di bawah hak akses isMaster */}
+                {isMaster && (
+                  <button 
+                    onClick={handleTriggerUpdate}
+                    disabled={isCheckingUpdate}
+                    className="flex items-center gap-1.5 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 px-2 py-1 rounded-xl text-[9px] font-black uppercase text-zinc-400 hover:text-white transition-all disabled:opacity-50"
+                  >
+                    {isCheckingUpdate ? (
+                      <span className="w-3 h-3 rounded-full bg-blue-500 animate-pulse border border-blue-900"></span>
+                    ) : (
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-3.5 h-3.5"><path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" /></svg>
+                    )}
+                    Cek Update
                   </button>
                 )}
               </div>

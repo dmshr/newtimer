@@ -63,7 +63,6 @@ export default function BossList() {
     const channel = pusherClient?.subscribe("boss-timer-k3");
     
     channel?.bind("boss-updated", (payload) => {
-      // ✅ LOGIKA PAYLOAD UPDATE (TANPA FETCH ULANG)
       if (payload.type === "UPDATE") {
         setBosses((prev) => {
           const exists = prev.find(b => b.id === payload.boss.id);
@@ -80,7 +79,6 @@ export default function BossList() {
         setBosses((prev) => prev.filter(b => b.id !== payload.id));
       } 
       else {
-        // Fallback untuk pesan lama atau sinyal tanpa payload
         loadBosses();
       }
     });
@@ -110,7 +108,10 @@ export default function BossList() {
               <BossRow
                 key={boss.id}
                 boss={boss}
-                onSelect={setSelectedBoss}
+                // ✅ JEMBATAN 1: Menyelipkan fungsi "triggerBackgroundUpdate" dari Row ke dalam objek selectedBoss
+                onSelect={(selected, triggerSyncFn) => {
+                  setSelectedBoss({ ...selected, triggerSync: triggerSyncFn });
+                }}
                 onEdit={setEditingBoss}
                 onDelete={setDeletingBoss}
                 animateInvasion={showInvasion} 
@@ -123,7 +124,17 @@ export default function BossList() {
           )}
         </AnimatePresence>
 
-        <BossModal boss={selectedBoss} onClose={() => setSelectedBoss(null)} />
+        {/* ✅ JEMBATAN 2: Menerima peluru 'payload' dari Modal dan menembakkannya ke triggerSync milik Row */}
+        <BossModal 
+          boss={selectedBoss} 
+          onClose={() => setSelectedBoss(null)} 
+          onSaved={(payload) => {
+            if (selectedBoss?.triggerSync) {
+              selectedBoss.triggerSync(payload);
+            }
+          }} 
+        />
+        
         <EditBossModal boss={editingBoss} onClose={() => setEditingBoss(null)} />
         <DeleteBossModal boss={deletingBoss} onClose={() => setDeletingBoss(null)} />
       </div>

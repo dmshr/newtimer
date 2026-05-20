@@ -95,7 +95,7 @@ export default function BossRow({ boss, onSelect, onEdit, onDelete, animateInvas
 
   // ─── INDEPENDENT BACKGROUND HANDLING & RE-ACTIVATION LOGIC ─────────
   const triggerBackgroundUpdate = async (payload) => {
-    // ✅ AKTIVASI ULANG: Setiap kali update time dipicu (baik via modal / klik retry / auto update), 
+    // ✅ AKTIVASI ULANG: Setiap kali update time dipicu (baik via modal / klik retry), 
     // hapus timeout lama dan nyalakan lampu kuning memproses kembali dari awal.
     setSyncStatus("sending");
     setLastPayload(payload);
