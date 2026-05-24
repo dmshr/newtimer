@@ -65,10 +65,12 @@ export default function BossModal({ boss, onClose, onSaved }) {
     setIsSubmitting(true);
 
     try {
+      // ✅ PROTEKSI ANTI RACE-CONDITION: Menyertakan "expected_spawn"
       let payload = { 
         name: boss.name, 
         interval_hours: boss.interval_hours, 
-        rarity: boss.rarity 
+        rarity: boss.rarity,
+        expected_spawn: boss.spawn // Sabuk pengaman
       };
 
       if (confirmAction === 'justnow') {

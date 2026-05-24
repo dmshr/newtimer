@@ -7,7 +7,7 @@ import { getCountdown } from "@/lib/time";
 import { useSound } from "@/context/SoundContext";
 import { updateBoss } from "@/services/bossServices";
 import { getRarityColor } from "@/lib/colors"; 
-import { useTimezone } from "@/context/TimezoneContext"; // ✅ IMPORT TIMEZONE CONTEXT
+import { useTimezone } from "@/context/TimezoneContext";
 
 const rowVariants = {
   hidden: { opacity: 0, y: 10 },
@@ -20,7 +20,7 @@ export default function BossRow({ boss, onSelect, onEdit, onDelete, animateInvas
   const isReadOnly = userRole === "User"; 
   const canAutoUpdate = userRole === "SuperAdmin" || userRole === "Master"; 
 
-  const { tz, mounted } = useTimezone(); // ✅ PANGGIL HOOK TIMEZONE
+  const { tz, mounted } = useTimezone(); 
 
   const [time, setTime] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -30,23 +30,20 @@ export default function BossRow({ boss, onSelect, onEdit, onDelete, animateInvas
   const [syncStatus, setSyncStatus] = useState("idle"); 
   const [lastPayload, setLastPayload] = useState(null);
   const [autoUpdateLocked, setAutoUpdateLocked] = useState(false);
+  
+  // ✅ Ref terpisah agar Jitter dan Error Timeout tidak bertabrakan
   const timeoutRef = useRef(null);
+  const autoUpdateTimeoutRef = useRef(null); 
 
-  // ✅ FUNGSI FORMAT WAKTU TAMPILAN (KEBAL ZONA WAKTU OS)
   const formatDisplayTime = (fullStr) => {
     if (!fullStr || fullStr === "--:--:--" || fullStr.includes("NaN")) return "--:--:--";
     
-    // Baca string dari DB sebagai GMT+7 mutlak
     const dateObj = new Date(`${fullStr.trim()} GMT+0700`);
     if (isNaN(dateObj.getTime())) return "--:--:--";
 
-    // Hitung manual ke waktu absolut UTC
     const trueUtcMs = dateObj.getTime();
-    
-    // Tambahkan Zona Waktu yang dipilih user (tz * 1 jam)
     const shiftedDate = new Date(trueUtcMs + (tz * 3600000));
     
-    // Ekstrak langsung menggunakan metode UTC
     const hh = String(shiftedDate.getUTCHours()).padStart(2, '0');
     const mm = String(shiftedDate.getUTCMinutes()).padStart(2, '0');
     const ss = String(shiftedDate.getUTCSeconds()).padStart(2, '0');
@@ -71,11 +68,14 @@ export default function BossRow({ boss, onSelect, onEdit, onDelete, animateInvas
     return () => clearInterval(interval);
   }, [boss.spawn]);
 
+  // ✅ KETIKA DATA BERUBAH DARI SERVER (PUSHER) -> BATALKAN TEMBAKAN API BROWSER INI
   useEffect(() => {
     setAutoUpdateLocked(false);
     setSyncStatus("idle");
+    if (autoUpdateTimeoutRef.current) clearTimeout(autoUpdateTimeoutRef.current);
   }, [boss.spawn]);
 
+  // ─── 2. SISTEM AUTO UPDATE (DENGAN PROTEKSI JITTER ANTI-BERUNTUN) ───────
   useEffect(() => {
     if (canAutoUpdate && time && time.seconds <= 0 && !autoUpdateLocked) {
       const secondsPastSpawn = Math.abs(time.seconds);
@@ -88,18 +88,23 @@ export default function BossRow({ boss, onSelect, onEdit, onDelete, animateInvas
       }
 
       if (secondsPastSpawn >= maxWaitSeconds) {
-        console.log(`[Auto Update] System triggered update for ${boss.name}`);
+        console.log(`[Auto Update] Preparing update for ${boss.name}...`);
         
         setAutoUpdateLocked(true); 
         
-        const autoPayload = {
-          name: boss.name,
-          interval_hours: boss.interval_hours,
-          rarity: boss.rarity,
-          action: 'not_spawned' 
-        };
+        // ✅ PROTEKSI 1 (JITTER): Jeda acak 0-3 detik untuk memecah antrian request
+        const randomDelay = Math.floor(Math.random() * 3000); 
 
-        triggerBackgroundUpdate(autoPayload);
+        autoUpdateTimeoutRef.current = setTimeout(() => {
+          const autoPayload = {
+            name: boss.name,
+            interval_hours: boss.interval_hours,
+            rarity: boss.rarity,
+            action: 'not_spawned',
+            expected_spawn: boss.spawn // ✅ PROTEKSI 2: Kirim waktu target ke backend
+          };
+          triggerBackgroundUpdate(autoPayload);
+        }, randomDelay);
       }
     }
   }, [time, autoUpdateLocked, boss, canAutoUpdate]);
@@ -139,6 +144,7 @@ export default function BossRow({ boss, onSelect, onEdit, onDelete, animateInvas
   useEffect(() => {
     return () => {
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      if (autoUpdateTimeoutRef.current) clearTimeout(autoUpdateTimeoutRef.current);
     };
   }, []);
 
@@ -174,7 +180,6 @@ export default function BossRow({ boss, onSelect, onEdit, onDelete, animateInvas
 
       <div className="text-right flex flex-col justify-center min-w-0 overflow-hidden pr-3">
         <div className="text-[11px] sm:text-sm md:text-base font-semibold text-zinc-300 font-sans tracking-wider whitespace-nowrap">
-          {/* ✅ TAMPILKAN WAKTU SESUAI PILIHAN TZ */}
           {mounted ? formatDisplayTime(boss.spawn) : "--:--:--"}
         </div>
         <div className="text-[9px] sm:text-[10px] text-zinc-500 font-semibold tracking-tighter whitespace-nowrap opacity-90">
@@ -208,7 +213,11 @@ export default function BossRow({ boss, onSelect, onEdit, onDelete, animateInvas
           <motion.button
             whileHover={{ scale: 1.15 }}
             whileTap={{ scale: 0.8 }}
-            onClick={(e) => { e.stopPropagation(); onSelect(boss, triggerBackgroundUpdate); }}
+            onClick={(e) => { 
+              e.stopPropagation(); 
+              // Tambahkan expected_spawn juga untuk klik manual Not Spawned / Just Now (Proteksi tambahan)
+              onSelect(boss, (payload) => triggerBackgroundUpdate({ ...payload, expected_spawn: boss.spawn })); 
+            }}
             className="text-sm sm:text-lg filter drop-shadow-sm flex-shrink-0 opacity-80 hover:opacity-100 transition-opacity"
           >
             💀
