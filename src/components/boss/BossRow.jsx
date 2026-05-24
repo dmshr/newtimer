@@ -7,6 +7,7 @@ import { getCountdown } from "@/lib/time";
 import { useSound } from "@/context/SoundContext";
 import { updateBoss } from "@/services/bossServices";
 import { getRarityColor } from "@/lib/colors"; 
+import { useTimezone } from "@/context/TimezoneContext"; // ✅ IMPORT TIMEZONE CONTEXT
 
 const rowVariants = {
   hidden: { opacity: 0, y: 10 },
@@ -16,29 +17,43 @@ const rowVariants = {
 export default function BossRow({ boss, onSelect, onEdit, onDelete, animateInvasion }) {
   const { data: session } = useSession();
   const userRole = session?.user?.role || "User";
-  
-  // ✅ Pembagian Hak Akses
   const isReadOnly = userRole === "User"; 
   const canAutoUpdate = userRole === "SuperAdmin" || userRole === "Master"; 
+
+  const { tz, mounted } = useTimezone(); // ✅ PANGGIL HOOK TIMEZONE
 
   const [time, setTime] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const { playAlert } = useSound();
   const [hasAlerted, setHasAlerted] = useState(false);
 
-  // ─── STATE SINKRONISASI INDIKATOR LAMPU & ANTRIAN ──────────────────
   const [syncStatus, setSyncStatus] = useState("idle"); 
   const [lastPayload, setLastPayload] = useState(null);
   const [autoUpdateLocked, setAutoUpdateLocked] = useState(false);
   const timeoutRef = useRef(null);
 
-  const formatOnlyTime = (fullStr) => {
-    if (!fullStr || fullStr === "--:--:--") return "--:--:--";
-    const parts = fullStr.split(" ");
-    return parts[parts.length - 1];
+  // ✅ FUNGSI FORMAT WAKTU TAMPILAN (KEBAL ZONA WAKTU OS)
+  const formatDisplayTime = (fullStr) => {
+    if (!fullStr || fullStr === "--:--:--" || fullStr.includes("NaN")) return "--:--:--";
+    
+    // Baca string dari DB sebagai GMT+7 mutlak
+    const dateObj = new Date(`${fullStr.trim()} GMT+0700`);
+    if (isNaN(dateObj.getTime())) return "--:--:--";
+
+    // Hitung manual ke waktu absolut UTC
+    const trueUtcMs = dateObj.getTime();
+    
+    // Tambahkan Zona Waktu yang dipilih user (tz * 1 jam)
+    const shiftedDate = new Date(trueUtcMs + (tz * 3600000));
+    
+    // Ekstrak langsung menggunakan metode UTC
+    const hh = String(shiftedDate.getUTCHours()).padStart(2, '0');
+    const mm = String(shiftedDate.getUTCMinutes()).padStart(2, '0');
+    const ss = String(shiftedDate.getUTCSeconds()).padStart(2, '0');
+    
+    return `${hh}:${mm}:${ss}`;
   };
 
-  // ─── 1. SIKLUS UTAMA LOOP TIMER VISUAL ───────
   useEffect(() => {
     const update = () => {
       const countdown = getCountdown(boss.spawn);
@@ -61,16 +76,13 @@ export default function BossRow({ boss, onSelect, onEdit, onDelete, animateInvas
     setSyncStatus("idle");
   }, [boss.spawn]);
 
-  // ─── 2. SISTEM AUTO UPDATE LATAR BELAKANG (ANTI-LOOP & ANTI-DDOS) ───────
   useEffect(() => {
     if (canAutoUpdate && time && time.seconds <= 0 && !autoUpdateLocked) {
       const secondsPastSpawn = Math.abs(time.seconds);
       
-      // ✅ ATURAN BARU: Default 10 Menit untuk SEMUA Rarity
       let maxWaitSeconds = 10 * 60; 
       const rarityLower = boss.rarity?.toLowerCase() || "";
 
-      // ✅ KECUALI: Rare (Blue) diset menjadi 7 Menit
       if (rarityLower.includes("rare") || rarityLower.includes("blue")) {
         maxWaitSeconds = 7 * 60; 
       }
@@ -100,7 +112,6 @@ export default function BossRow({ boss, onSelect, onEdit, onDelete, animateInvas
     if (time && time.seconds >= 60) setHasAlerted(false);
   }, [time?.seconds, hasAlerted, playAlert]);
 
-  // ─── 3. INDEPENDENT BACKGROUND HANDLING ─────────
   const triggerBackgroundUpdate = async (payload) => {
     setSyncStatus("sending");
     setLastPayload(payload);
@@ -163,10 +174,11 @@ export default function BossRow({ boss, onSelect, onEdit, onDelete, animateInvas
 
       <div className="text-right flex flex-col justify-center min-w-0 overflow-hidden pr-3">
         <div className="text-[11px] sm:text-sm md:text-base font-semibold text-zinc-300 font-sans tracking-wider whitespace-nowrap">
-          {formatOnlyTime(boss.spawn)}
+          {/* ✅ TAMPILKAN WAKTU SESUAI PILIHAN TZ */}
+          {mounted ? formatDisplayTime(boss.spawn) : "--:--:--"}
         </div>
         <div className="text-[9px] sm:text-[10px] text-zinc-500 font-semibold tracking-tighter whitespace-nowrap opacity-90">
-          Kill: {formatOnlyTime(boss.killed)}
+          Kill: {mounted ? formatDisplayTime(boss.killed) : "--:--:--"}
         </div>
       </div>
 

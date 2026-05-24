@@ -6,7 +6,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useSession, signOut } from "next-auth/react";
 import { useSound } from "@/context/SoundContext";
 import { useInvasion } from "@/context/InvasionContext"; 
-import { pusherClient } from "@/lib/pusher"; // ✅ IMPORT PUSHER CLIENT
+import { pusherClient } from "@/lib/pusher"; 
+import { useTimezone } from "@/context/TimezoneContext"; // ✅ IMPORT TIMEZONE CONTEXT
 import TableHeader from "@/components/boss/TableHeader";
 import AddBossModal from "@/components/boss/AddBossModal";
 import RegisterUserModal from "@/components/layout/RegisterUserModal"; 
@@ -20,6 +21,7 @@ export default function Header() {
   const { data: session } = useSession();
   const { volume, setVolume, unlockAudio } = useSound();
   const { showInvasion } = useInvasion(); 
+  const { tz, setTz, mounted } = useTimezone(); // ✅ PANGGIL HOOK TIMEZONE
 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
@@ -141,7 +143,6 @@ export default function Header() {
     });
   };
 
-  // ✅ 1. FUNGSI UNTUK MENEMBAKKAN SINYAL REFRESH KE SERVER
   const handleTriggerUpdate = async () => {
     setIsCheckingUpdate(true);
     try {
@@ -154,7 +155,6 @@ export default function Header() {
     }
   };
 
-  // ✅ 2. LISTENER GLOBAL UNTUK MENANGKAP SINYAL DAN MEMAKSA REFRESH
   useEffect(() => {
     if (isLoginPage) return;
 
@@ -162,14 +162,12 @@ export default function Header() {
     
     const handleForceRefresh = () => {
       console.log("🔄 Sistem mendeteksi pembaruan. Memaksa refresh halaman...");
-      // window.location.reload(true) akan memaksa browser mengambil file terbaru dari server (melewati cache)
       window.location.reload(true); 
     };
 
     channel?.bind("force-refresh", handleForceRefresh);
 
     return () => {
-      // Ingat: Gunakan unbind, bukan unsubscribe!
       channel?.unbind("force-refresh", handleForceRefresh);
     };
   }, [isLoginPage]);
@@ -182,7 +180,6 @@ export default function Header() {
       className="sticky top-0 left-0 w-full z-[100] isolate bg-black border-b border-zinc-900 flex flex-col"
     >
       <div className="max-w-5xl mx-auto w-full">
-        {/* TOP BAR */}
         <div className="flex items-center justify-between px-3 md:px-4 py-3 min-h-[60px] gap-2">
           
           <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
@@ -262,12 +259,32 @@ export default function Header() {
           {isMenuOpen && (
             <motion.div {...dropdownAnimation} className="overflow-hidden bg-[#0a0a0a] border-t border-zinc-900">
               <div className="px-4 py-2 flex flex-wrap items-center gap-3 sm:gap-4">
+                
                 {canSeeSalary && (
                   <div className="flex bg-zinc-900 border border-zinc-800 p-0.5 rounded-xl">
                     <button onClick={() => switchView("boss")} className={`px-2 py-1 rounded-lg text-[9px] font-black transition-all ${currentView === 'boss' ? 'bg-red-600 text-white' : 'text-zinc-600 hover:text-zinc-400'}`}>Boss List</button>
                     <button onClick={() => switchView("salary")} className={`px-2 py-1 rounded-lg text-[9px] font-black transition-all ${currentView === 'salary' ? 'bg-red-600 text-white' : 'text-zinc-600 hover:text-zinc-400'}`}>Salary</button>
                   </div>
                 )}
+
+                {/* ✅ DROPDOWN TIMEZONE BARU */}
+                <div className="flex bg-zinc-900 border border-zinc-800 p-0.5 rounded-xl items-center">
+                  <span className="px-2 text-[8px] text-zinc-500 font-bold uppercase tracking-widest">TZ</span>
+                  {mounted ? (
+                    <select 
+                      value={tz}
+                      onChange={(e) => setTz(Number(e.target.value))}
+                      className="bg-black text-white text-[9px] font-black outline-none rounded-lg px-2 py-1 cursor-pointer"
+                    >
+                      <option value={7}>GMT+7 (WIB)</option>
+                      <option value={8}>GMT+8 (WITA/SG/MY)</option>
+                      <option value={9}>GMT+9 (WIT/JP)</option>
+                    </select>
+                  ) : (
+                    <div className="bg-black text-transparent text-[9px] px-2 py-1 rounded-lg animate-pulse w-[90px]">...</div>
+                  )}
+                </div>
+
                 {canManage && (
                   <button onClick={() => { setIsAddOpen(true); setIsMenuOpen(false); }} className="flex items-center gap-1.5 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 px-2 py-1 rounded-xl text-[9px] font-black uppercase text-zinc-400 hover:text-white transition-all">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-3.5 h-3.5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg> Add Boss
@@ -279,7 +296,7 @@ export default function Header() {
                   </button>
                 )}
                 
-                {/* ✅ TOMBOL CEK UPDATE / FORCE REFRESH */}
+                {/* TOMBOL CEK UPDATE / FORCE REFRESH */}
                 {isMaster && (
                   <button 
                     onClick={handleTriggerUpdate}

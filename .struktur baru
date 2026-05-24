@@ -1,0 +1,72 @@
+newtimer/
+├── public/                        # Aset statik (favicon, dll)
+│   ├── favicon-backup.png
+│   ├── favicon.ico
+│   └── sounds/
+│       └── alert.mp3              # Audio notifikasi
+├── src/
+│   ├── app/                       # NEXT.JS APP ROUTER
+│   │   ├── api/
+│   │   │   ├── auth/
+│   │   │   │   ├── [...nextauth]/
+│   │   │   │   │   └── route.js   # Konfigurasi NextAuth & JWT
+│   │   │   │   └── register/
+│   │   │   │       └── route.js   # API Pendaftaran User Baru
+│   │   │   ├── boss/
+│   │   │   │   ├── invasion/
+│   │   │   │   │   ├── reset/
+│   │   │   │   │   │   └── route.js
+│   │   │   │   │   └── status/
+│   │   │   │   │       └── route.js
+│   │   │   │   └── route.js       # CRUD Data Boss (Diproteksi RBAC)
+│   │   │   ├── salary/
+│   │   │   │   └── route.js       # Fetch CSV Google Sheets
+│   │   │   ├── settings/
+│   │   │   │   └── route.js       # Global Settings (force-dynamic)
+│   │   │   ├── time/
+│   │   │   │   └── route.js       # Waktu Server
+│   │   │   └── trigger-update/
+│   │   │       └── route.js       # Endpoint Sinyal Force Refresh
+│   │   ├── login/
+│   │   │   └── page.jsx           # Halaman Login
+│   │   ├── globals.css            # Tailwind & CSS Dasar (Dibersihkan)
+│   │   ├── layout.jsx             # Root Layout & Context Providers
+│   │   └── page.jsx               # Halaman Utama (Tanpa Banner Manual)
+│   ├── components/
+│   │   ├── boss/
+│   │   │   ├── AddBossModal.jsx   
+│   │   │   ├── AnnouncementBar.jsx # Teks berjalan otomatis (unbind fix)
+│   │   │   ├── BossList.jsx       # List render & Sorting
+│   │   │   ├── BossModal.jsx      # Modal Aksi (z-index 110)
+│   │   │   ├── BossRow.jsx        # Logika Inti & Timer Latar Belakang
+│   │   │   ├── DeleteBossModal.jsx
+│   │   │   ├── EditBossModal.jsx  # Edit Atribut (z-index 120)
+│   │   │   ├── InvasionControl.jsx
+│   │   │   └── TableHeader.jsx    # Header Grid (Presisi dengan BossRow)
+│   │   ├── layout/
+│   │   │   ├── Header.jsx         # Navigasi & Force Refresh Listener
+│   │   │   ├── RegisterUserModal.jsx
+│   │   │   └── TimeSync.jsx       # Sinkronisasi jam server tiap 15 menit
+│   │   └── salary/
+│   │       └── SalaryView.jsx     # Tabel gaji (Kalkulasi minus string fix)
+│   ├── context/
+│   │   ├── AuthProvider.jsx       # NextAuth Session Provider
+│   │   ├── InvasionContext.js     # State Invasion (unbind fix)
+│   │   └── SoundContext.js        # State Audio & Autoplay Bypass
+│   ├── lib/
+│   │   ├── colors.js              # ✅ FILE BARU: Sentralisasi Warna Rarity
+│   │   ├── db.js                  # Koneksi Neon Postgres
+│   │   ├── pusher.js              # Client & Server Pusher SDK
+│   │   └── time.js                # Kalkulator Timer (Kebal Zona Waktu)
+│   ├── repositories/
+│   │   └── bossRepository.js      # Raw SQL Query (Database Access Layer)
+│   ├── services/
+│   │   └── bossServices.js        # Fetch API (Client Request Layer)
+│   └── middleware.js              # Pemblokiran rute untuk unauthenticated user
+├── favicon.ico
+├── favicon.png
+├── jsconfig.json
+├── package-lock.json
+├── package.json                   # Daftar Dependensi Lengkap
+├── postcss.config.js
+└── tailwind.config.js

@@ -5,6 +5,7 @@ import Header from "@/components/layout/Header";
 import { SoundProvider } from "@/context/SoundContext";
 import { InvasionProvider } from "@/context/InvasionContext";
 import AuthProvider from "@/context/AuthProvider";
+import { TimezoneProvider } from "@/context/TimezoneContext"; // ✅ 1. IMPORT TIMEZONE
 import TimeSync from "@/components/layout/TimeSync";
 
 const inter = Inter({ 
@@ -30,20 +31,23 @@ export default function RootLayout({ children }) {
           <TimeSync /> 
           
           <SoundProvider>
-            <InvasionProvider>
-              
-              {/* ✅ Header dibungkus Suspense karena menggunakan useSearchParams */}
-              <Suspense fallback={<div className="h-[60px] bg-black border-b border-zinc-900 w-full" />}>
-                <Header />
-              </Suspense>
-              
-              {/* Main content wrapping */}
-              <main className="min-h-screen">
-                {children}
-              </main>
+            <TimezoneProvider> {/* ✅ 2. BUNGKUS APLIKASI MULAI DARI SINI */}
+              <InvasionProvider>
+                
+                {/* Header dibungkus Suspense karena menggunakan useSearchParams */}
+                <Suspense fallback={<div className="h-[60px] bg-black border-b border-zinc-900 w-full" />}>
+                  <Header />
+                </Suspense>
+                
+                {/* Main content wrapping */}
+                <main className="min-h-screen">
+                  {children}
+                </main>
 
-            </InvasionProvider>
+              </InvasionProvider>
+            </TimezoneProvider> {/* ✅ 3. TUTUP BUNGKUSAN DI SINI */}
           </SoundProvider>
+          
         </AuthProvider>
       </body>
     </html>

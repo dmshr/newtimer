@@ -12,41 +12,38 @@ export default function BossModal({ boss, onClose, onSaved }) {
   const [formattedOutput, setFormattedOutput] = useState(""); 
   const [initialState, setInitialState] = useState({ date: "", time: "" });
   
-  // ✅ Proteksi Anti Klik Ganda
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const getNowLocal = () => {
-    const now = new Date(getServerTime()); 
-    const offset = now.getTimezoneOffset() * 60000;
-    const localISOTime = new Date(now.getTime() - offset).toISOString();
+  // ✅ AMBIL WAKTU ABSOLUT SERVER DAN PAKSA KE GMT+7 (WIB) UNTUK DEFAULT INPUT
+  const getNowInGmt7 = () => {
+    const nowMs = getServerTime(); 
+    const gmt7Time = new Date(nowMs + (7 * 3600000)); // Konversi paksa ke GMT+7
+    
+    const y = gmt7Time.getUTCFullYear();
+    const m = String(gmt7Time.getUTCMonth() + 1).padStart(2, '0');
+    const d = String(gmt7Time.getUTCDate()).padStart(2, '0');
+    const h = String(gmt7Time.getUTCHours()).padStart(2, '0');
+    const min = String(gmt7Time.getUTCMinutes()).padStart(2, '0');
+    const s = String(gmt7Time.getUTCSeconds()).padStart(2, '0');
+
     return {
-      date: localISOTime.split("T")[0],
-      time: localISOTime.split("T")[1].slice(0, 8),
+      date: `${y}-${m}-${d}`,
+      time: `${h}:${min}:${s}`,
     };
   };
 
-  const formatToGmt7 = (dateObj) => {
-    const formatter = new Intl.DateTimeFormat("en-GB", {
-      timeZone: "Asia/Jakarta",
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-      hour12: false,
-    });
-    const parts = formatter.formatToParts(dateObj);
-    const d = parts.find(p => p.type === "day").value;
-    const m = parts.find(p => p.type === "month").value;
-    const y = parts.find(p => p.type === "year").value;
-    const time = `${parts.find(p => p.type === "hour").value}:${parts.find(p => p.type === "minute").value}:${parts.find(p => p.type === "second").value}`;
-    return `${d} ${m} ${y} ${time}`;
+  // ✅ GABUNGKAN INPUTAN MENJADI STRING BAKU (KARENA INPUT SUDAH DIANGGAP GMT+7 MUTLAK)
+  const formatForDb = (dateStr, timeStr) => {
+    if (!dateStr || !timeStr) return "";
+    const [y, mStr, d] = dateStr.split("-");
+    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const m = months[parseInt(mStr, 10) - 1];
+    return `${d} ${m} ${y} ${timeStr}`;
   };
 
   useEffect(() => {
     if (boss) {
-      const now = getNowLocal();
+      const now = getNowInGmt7(); 
       setManualDate(now.date);
       setManualTime(now.time);
       setInitialState({ date: now.date, time: now.time });
@@ -57,17 +54,14 @@ export default function BossModal({ boss, onClose, onSaved }) {
 
   useEffect(() => {
     if (manualDate && manualTime) {
-      const combined = new Date(`${manualDate}T${manualTime}`); 
-      if (!isNaN(combined.getTime())) {
-        setFormattedOutput(formatToGmt7(combined));
-      }
+      setFormattedOutput(formatForDb(manualDate, manualTime));
     }
   }, [manualDate, manualTime]);
 
   const isEdited = manualDate !== initialState.date || manualTime !== initialState.time;
 
   const executeAction = async () => {
-    if (isSubmitting) return; // Mencegah execute ganda
+    if (isSubmitting) return; 
     setIsSubmitting(true);
 
     try {
@@ -115,7 +109,7 @@ export default function BossModal({ boss, onClose, onSaved }) {
             <AnimatePresence>
               {confirmAction && (
                 <>
-                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/70 z-105" onClick={() => setConfirmAction(null)} />
+                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/70 z-[105]" onClick={() => setConfirmAction(null)} />
                   <motion.div initial={{ y: "-100%" }} animate={{ y: 0 }} exit={{ y: "-100%" }} transition={{ type: "spring", damping: 25, stiffness: 200 }} className="absolute top-0 left-0 right-0 bg-[#0b0b0b] z-[110] flex flex-col items-center justify-center p-6 border-b border-red-900/40 shadow-2xl">
                     <div className="text-red-600 font-black text-xl uppercase tracking-tighter mb-1 leading-none">{boss.name}</div>
                     <p className="text-zinc-500 text-[9px] uppercase tracking-[0.2em] font-bold mb-6">Confirm Update ?</p>
@@ -145,10 +139,10 @@ export default function BossModal({ boss, onClose, onSaved }) {
                 <div className="mt-2 mb-5 h-[2px] w-full bg-gradient-to-r from-transparent via-red-500 to-transparent opacity-20" />
                 <div className="text-center text-[10px] text-zinc-400 uppercase tracking-[0.3em] mb-3 font-bold opacity-80">MANUAL EDIT</div>
                 <div className="grid grid-cols-2 gap-2">
-                  <button onClick={() => { setCurrentScreen("spawn"); const now = getNowLocal(); setManualDate(now.date); setManualTime(now.time); setInitialState({ date: now.date, time: now.time }); }} className="w-full bg-black/40 border border-red-700/40 hover:bg-red-700 text-zinc-300 hover:text-white font-bold py-3 px-1 rounded-xl text-[9px] uppercase tracking-wider shadow-[0_0_10px_rgba(185,28,28,0.05)] hover:shadow-[0_0_15px_rgba(185,28,28,0.4)] transition-all duration-200 outline-none">
+                  <button onClick={() => { setCurrentScreen("spawn"); const now = getNowInGmt7(); setManualDate(now.date); setManualTime(now.time); setInitialState({ date: now.date, time: now.time }); }} className="w-full bg-black/40 border border-red-700/40 hover:bg-red-700 text-zinc-300 hover:text-white font-bold py-3 px-1 rounded-xl text-[9px] uppercase tracking-wider shadow-[0_0_10px_rgba(185,28,28,0.05)] hover:shadow-[0_0_15px_rgba(185,28,28,0.4)] transition-all duration-200 outline-none">
                     ⚙️ Spawn Time
                   </button>
-                  <button onClick={() => { setCurrentScreen("killed"); const now = getNowLocal(); setManualDate(now.date); setManualTime(now.time); setInitialState({ date: now.date, time: now.time }); }} className="w-full bg-black/40 border border-red-700/40 hover:bg-red-700 text-zinc-300 hover:text-white font-bold py-3 px-1 rounded-xl text-[9px] uppercase tracking-wider shadow-[0_0_10px_rgba(185,28,28,0.05)] hover:shadow-[0_0_15px_rgba(185,28,28,0.4)] transition-all duration-200 outline-none">
+                  <button onClick={() => { setCurrentScreen("killed"); const now = getNowInGmt7(); setManualDate(now.date); setManualTime(now.time); setInitialState({ date: now.date, time: now.time }); }} className="w-full bg-black/40 border border-red-700/40 hover:bg-red-700 text-zinc-300 hover:text-white font-bold py-3 px-1 rounded-xl text-[9px] uppercase tracking-wider shadow-[0_0_10px_rgba(185,28,28,0.05)] hover:shadow-[0_0_15px_rgba(185,28,28,0.4)] transition-all duration-200 outline-none">
                     💀 Killed Time
                   </button>
                 </div>
@@ -160,6 +154,7 @@ export default function BossModal({ boss, onClose, onSaved }) {
                 <div className="text-center text-[10px] text-zinc-400 uppercase tracking-[0.2em] mb-4 font-bold opacity-80">
                   {currentScreen === "spawn" ? "MANUAL SPAWN TIME INPUT" : "MANUAL KILLED TIME INPUT"}
                 </div>
+                
                 <div className="grid grid-cols-[1fr_1fr_auto] gap-1.5 items-center">
                   <input 
                     type="date" 
@@ -182,6 +177,17 @@ export default function BossModal({ boss, onClose, onSaved }) {
                     Save
                   </button>
                 </div>
+
+                {/* ✅ KETERANGAN DUA BAHASA */}
+                <div className="mt-3 text-center border-t border-zinc-900/50 pt-2">
+                  <p className="text-[7.5px] sm:text-[8px] text-zinc-500 font-bold uppercase tracking-wide leading-relaxed">
+                    * ISI DENGAN GMT+7 ATAU SESUAI WAKTU PADA CLAN BOSS RECORD
+                  </p>
+                  <p className="text-[7.5px] sm:text-[8px] text-zinc-500 font-bold uppercase tracking-wide mt-1">
+                    * FILL IN WITH GMT+7 OR ACCORDING TO CLAN BOSS RECORD TIME
+                  </p>
+                </div>
+
                 <div className="mt-3 min-h-[28px]">
                   <AnimatePresence>
                     {isEdited && formattedOutput && (
@@ -192,6 +198,7 @@ export default function BossModal({ boss, onClose, onSaved }) {
                     )}
                   </AnimatePresence>
                 </div>
+
                 <button onClick={() => setCurrentScreen("menu")} className="w-full mt-2 text-center text-zinc-600 hover:text-zinc-400 font-bold text-[9px] uppercase tracking-widest transition-colors py-1">
                   ◀ Back To Menu
                 </button>
