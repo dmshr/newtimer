@@ -2,11 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  /* Nilai awal, akan diubah secara dinamis oleh Header.jsx */
-  --header-height: 110px;
-}
-
 body {
   background: #0b0b0b;
   color: white;
@@ -36,7 +31,7 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
-/* ✅ Animasi Tambahan: Pulse Merah Kustom (Opsional) */
+/* Animasi Tambahan: Pulse Merah Kustom */
 /* Jika kamu ingin efek berdenyut yang lebih "tegas" untuk tombol Invasion */
 @keyframes pulse-red-custom {
   0%, 100% {

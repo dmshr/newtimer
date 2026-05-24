@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useSession, signOut } from "next-auth/react";
 import { useSound } from "@/context/SoundContext";
 import { useInvasion } from "@/context/InvasionContext"; 
+import { pusherClient } from "@/lib/pusher"; // ✅ IMPORT PUSHER CLIENT
 import TableHeader from "@/components/boss/TableHeader";
 import AddBossModal from "@/components/boss/AddBossModal";
 import RegisterUserModal from "@/components/layout/RegisterUserModal"; 
@@ -28,7 +29,6 @@ export default function Header() {
   const [showAnnounceInput, setShowAnnounceInput] = useState(false);
   const [tempAnnounce, setTempAnnounce] = useState("");
   
-  // State untuk animasi loading tombol Cek Update
   const [isCheckingUpdate, setIsCheckingUpdate] = useState(false);
 
   const searchRef = useRef(null);
@@ -39,7 +39,7 @@ export default function Header() {
   const userRole = session?.user?.role || "User";
   const isLoginPage = pathname === "/login";
   const canManage = ["Admin", "SuperAdmin", "Master"].includes(userRole);
-  const isMaster = userRole === "Master"; // Proteksi role Master
+  const isMaster = userRole === "Master"; 
   const queryValue = searchParams.get("q") || "";
 
   const currentView = searchParams.get("view") || "boss";
@@ -67,7 +67,6 @@ export default function Header() {
     setIsMenuOpen(false);
   };
 
-  // KEMBALIKAN FUNGSI CTRL + F
   useEffect(() => {
     const handleKeyDown = (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key === "f") {
@@ -142,7 +141,7 @@ export default function Header() {
     });
   };
 
-  // Fungsi Pemicu Sinyal Real-time Update (Megafon Pusher)
+  // ✅ 1. FUNGSI UNTUK MENEMBAKKAN SINYAL REFRESH KE SERVER
   const handleTriggerUpdate = async () => {
     setIsCheckingUpdate(true);
     try {
@@ -154,6 +153,26 @@ export default function Header() {
       setIsCheckingUpdate(false);
     }
   };
+
+  // ✅ 2. LISTENER GLOBAL UNTUK MENANGKAP SINYAL DAN MEMAKSA REFRESH
+  useEffect(() => {
+    if (isLoginPage) return;
+
+    const channel = pusherClient?.subscribe("boss-timer-k3");
+    
+    const handleForceRefresh = () => {
+      console.log("🔄 Sistem mendeteksi pembaruan. Memaksa refresh halaman...");
+      // window.location.reload(true) akan memaksa browser mengambil file terbaru dari server (melewati cache)
+      window.location.reload(true); 
+    };
+
+    channel?.bind("force-refresh", handleForceRefresh);
+
+    return () => {
+      // Ingat: Gunakan unbind, bukan unsubscribe!
+      channel?.unbind("force-refresh", handleForceRefresh);
+    };
+  }, [isLoginPage]);
 
   if (isLoginPage) return null;
 
@@ -260,7 +279,7 @@ export default function Header() {
                   </button>
                 )}
                 
-                {/* ✅ LOCKING FILTER: Tombol Cek Update dibatasi murni di bawah hak akses isMaster */}
+                {/* ✅ TOMBOL CEK UPDATE / FORCE REFRESH */}
                 {isMaster && (
                   <button 
                     onClick={handleTriggerUpdate}

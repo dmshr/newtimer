@@ -3,6 +3,7 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
 import { updateBossDetail } from "@/services/bossServices";
+import { getRarityClass } from "@/lib/colors"; // ✅ IMPORT DARI FILE BARU
 
 export default function EditBossModal({ boss, onClose, onSaved }) {
   const [name, setName] = useState("");
@@ -17,18 +18,6 @@ export default function EditBossModal({ boss, onClose, onSaved }) {
       setRarity(boss.rarity || "World");
     }
   }, [boss]);
-
-  const getRarityClass = (variant) => {
-    switch (variant?.toLowerCase()) {
-      case 'invasi': case 'invasion': return 'text-orange-500 border-orange-900/50 shadow-[0_0_10px_rgba(249,115,22,0.1)]';
-      case 'legendary': return 'text-purple-500 border-purple-900/50 shadow-[0_0_10px_rgba(168,85,247,0.1)]';
-      case 'epic': return 'text-red-500 border-red-900/50 drop-shadow-[0_0_5px_rgba(239,68,68,0.5)]';
-      case 'rare': return 'text-blue-400 border-blue-900/50 shadow-[0_0_10px_rgba(59,130,246,0.1)]';
-      case 'world': return 'text-white border-zinc-700';
-      case 'mini boss': return 'text-cyan-400 border-cyan-900/50 shadow-[0_0_10px_rgba(34,211,238,0.1)]'; // ✅ Tambah warna Mini Boss
-      default: return 'text-zinc-300 border-zinc-800';
-    }
-  };
 
   const handleSave = async () => {
     if (!name.trim()) return alert("Name cannot be empty");
@@ -53,7 +42,7 @@ export default function EditBossModal({ boss, onClose, onSaved }) {
   return (
     <AnimatePresence>
       {boss && (
-        <motion.div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[60] backdrop-blur-sm px-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose}>
+        <motion.div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[120] backdrop-blur-sm px-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose}>
           <motion.div className="bg-[#0b0b0b] border border-zinc-800 w-full max-w-[360px] rounded-2xl p-6 relative shadow-2xl" initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} onClick={(e) => e.stopPropagation()}>
             
             <button onClick={onClose} className="absolute top-4 right-4 text-zinc-500 hover:text-white transition">✕</button>
@@ -95,7 +84,7 @@ export default function EditBossModal({ boss, onClose, onSaved }) {
                     <option value="Epic" className="bg-black text-red-500">EPIC (RED)</option>
                     <option value="Legendary" className="bg-black text-purple-500">LEGENDARY (PURPLE)</option>
                     <option value="Invasi" className="bg-black text-orange-500">INVASI (ORANGE)</option>
-                    <option value="Mini Boss" className="bg-black text-cyan-400">MINI BOSS (CYAN)</option> {/* ✅ Opsi Baru */}
+                    <option value="Mini Boss" className="bg-black text-cyan-400">MINI BOSS (CYAN)</option>
                   </select>
                   <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-[10px] opacity-30 text-white">▼</div>
                 </div>

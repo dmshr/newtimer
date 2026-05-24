@@ -6,6 +6,7 @@ import { useSession } from "next-auth/react";
 import { getCountdown } from "@/lib/time";
 import { useSound } from "@/context/SoundContext";
 import { updateBoss } from "@/services/bossServices";
+import { getRarityColor } from "@/lib/colors"; 
 
 const rowVariants = {
   hidden: { opacity: 0, y: 10 },
@@ -15,7 +16,10 @@ const rowVariants = {
 export default function BossRow({ boss, onSelect, onEdit, onDelete, animateInvasion }) {
   const { data: session } = useSession();
   const userRole = session?.user?.role || "User";
-  const isReadOnly = userRole === "User"; 
+  
+  // ✅ Pembagian Hak Akses
+  const isReadOnly = userRole === "User"; // User biasa tidak bisa klik manual
+  const canAutoUpdate = userRole === "SuperAdmin" || userRole === "Master"; // HANYA SuperAdmin & Master yang kirim auto-update
 
   const [time, setTime] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -25,7 +29,7 @@ export default function BossRow({ boss, onSelect, onEdit, onDelete, animateInvas
   // ─── STATE SINKRONISASI INDIKATOR LAMPU & ANTRIAN ──────────────────
   const [syncStatus, setSyncStatus] = useState("idle"); 
   const [lastPayload, setLastPayload] = useState(null);
-  const [autoUpdateLocked, setAutoUpdateLocked] = useState(false); // ✅ Kunci Gembok Auto Update
+  const [autoUpdateLocked, setAutoUpdateLocked] = useState(false);
   const timeoutRef = useRef(null);
 
   const formatOnlyTime = (fullStr) => {
@@ -52,15 +56,16 @@ export default function BossRow({ boss, onSelect, onEdit, onDelete, animateInvas
     return () => clearInterval(interval);
   }, [boss.spawn]);
 
-  // ✅ Buka Gembok jika spawn time di database telah berubah (Di-refresh)
   useEffect(() => {
     setAutoUpdateLocked(false);
     setSyncStatus("idle");
   }, [boss.spawn]);
 
-  // ─── 2. SISTEM AUTO UPDATE LATAR BELAKANG (ANTI-LOOP) ───────
+  // ─── 2. SISTEM AUTO UPDATE LATAR BELAKANG (ANTI-LOOP & ANTI-DDOS) ───────
   useEffect(() => {
-    if (time && time.seconds <= 0 && !autoUpdateLocked) {
+    // ✅ PERBAIKAN: Syarat canAutoUpdate ditambahkan. 
+    // Jika rolenya User atau Admin, blok kode ini akan dilewati sepenuhnya.
+    if (canAutoUpdate && time && time.seconds <= 0 && !autoUpdateLocked) {
       const secondsPastSpawn = Math.abs(time.seconds);
       let maxWaitSeconds = 5 * 60; // 5 Menit
       const rarityLower = boss.rarity?.toLowerCase() || "";
@@ -78,20 +83,19 @@ export default function BossRow({ boss, onSelect, onEdit, onDelete, animateInvas
       if (secondsPastSpawn >= maxWaitSeconds) {
         console.log(`[Auto Update] System triggered update for ${boss.name}`);
         
-        // 🔒 Kunci Gembok! Fungsi ini hanya akan berjalan sekali
         setAutoUpdateLocked(true); 
         
         const autoPayload = {
           name: boss.name,
           interval_hours: boss.interval_hours,
           rarity: boss.rarity,
-          use_db_time: true
+          action: 'not_spawned' 
         };
 
         triggerBackgroundUpdate(autoPayload);
       }
     }
-  }, [time, autoUpdateLocked, boss]);
+  }, [time, autoUpdateLocked, boss, canAutoUpdate]); // ✅ canAutoUpdate masuk dalam dependency
 
   useEffect(() => {
     if (time && time.seconds === 59 && !hasAlerted) {
@@ -108,7 +112,6 @@ export default function BossRow({ boss, onSelect, onEdit, onDelete, animateInvas
 
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
 
-    // Timeout Error jika database mati
     timeoutRef.current = setTimeout(() => {
       setSyncStatus("error");
     }, 5 * 60 * 1000);
@@ -134,7 +137,7 @@ export default function BossRow({ boss, onSelect, onEdit, onDelete, animateInvas
   }, []);
 
   if (!time) return (
-    <div className="grid grid-cols-[100px_1fr_130px] md:grid-cols-[140px_1fr_190px] px-3 md:px-4 py-3 opacity-0 font-mono">
+    <div className="grid grid-cols-[1.5fr_1fr_120px] md:grid-cols-[1.5fr_1fr_160px] px-3 md:px-4 py-3 opacity-0 font-mono">
       loading...
     </div>
   );
@@ -146,18 +149,6 @@ export default function BossRow({ boss, onSelect, onEdit, onDelete, animateInvas
   const h = Math.floor(seconds / 3600);
   const m = Math.floor((seconds % 3600) / 60);
   const s = seconds % 60;
-
-  const getRarityColor = (rarity) => {
-    switch (rarity?.toLowerCase()) {
-      case 'invasi': case 'invasion': case 'orange': return 'text-orange-500';
-      case 'legendary': case 'purple': return 'text-purple-500';
-      case 'epic': case 'red': return 'text-red-500 drop-shadow-[0_0_5px_rgba(239,68,68,0.5)]';
-      case 'rare': case 'blue': return 'text-blue-400';
-      case 'world': case 'white': return 'text-white';
-      case 'mini boss': case 'miniboss': case 'cyan': return 'text-cyan-400'; 
-      default: return 'text-zinc-300';
-    }
-  };
 
   const isInvasion = boss.rarity?.toLowerCase() === 'invasi' || boss.rarity?.toLowerCase() === 'invasion';
   const shouldAnimate = isInvasion ? animateInvasion : true; 
@@ -226,9 +217,7 @@ export default function BossRow({ boss, onSelect, onEdit, onDelete, animateInvas
           </span>
         )}
 
-        {/* ─── INDIKATOR SINKRONISASI REAKTIF PER SIKLUS HIDUP ─── */}
         <div className="relative group flex items-center justify-center w-5 h-5 ml-0.5">
-          
           {syncStatus === "sending" && (
             <>
               <div className="w-2.5 h-2.5 bg-amber-500 rounded-full animate-pulse" />

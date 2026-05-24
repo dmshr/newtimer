@@ -109,14 +109,14 @@ export default function BossModal({ boss, onClose, onSaved }) {
   return (
     <AnimatePresence>
       {boss && (
-        <motion.div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+        <motion.div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[110] backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
           <motion.div className="bg-[#0b0b0b] border border-red-900/40 w-[95%] max-w-[340px] rounded-2xl p-4 relative shadow-2xl overflow-hidden font-inter" initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} onClick={(e) => e.stopPropagation()}>
             
             <AnimatePresence>
               {confirmAction && (
                 <>
-                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/70 z-40" onClick={() => setConfirmAction(null)} />
-                  <motion.div initial={{ y: "-100%" }} animate={{ y: 0 }} exit={{ y: "-100%" }} transition={{ type: "spring", damping: 25, stiffness: 200 }} className="absolute top-0 left-0 right-0 bg-[#0b0b0b] z-50 flex flex-col items-center justify-center p-6 border-b border-red-900/40 shadow-2xl">
+                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/70 z-105" onClick={() => setConfirmAction(null)} />
+                  <motion.div initial={{ y: "-100%" }} animate={{ y: 0 }} exit={{ y: "-100%" }} transition={{ type: "spring", damping: 25, stiffness: 200 }} className="absolute top-0 left-0 right-0 bg-[#0b0b0b] z-[110] flex flex-col items-center justify-center p-6 border-b border-red-900/40 shadow-2xl">
                     <div className="text-red-600 font-black text-xl uppercase tracking-tighter mb-1 leading-none">{boss.name}</div>
                     <p className="text-zinc-500 text-[9px] uppercase tracking-[0.2em] font-bold mb-6">Confirm Update ?</p>
                     <div className="flex gap-3 w-full">

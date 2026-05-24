@@ -2,6 +2,8 @@ import { getGlobalSetting, updateGlobalSetting } from "@/repositories/bossReposi
 import { pusherServer } from "@/lib/pusher";
 import { NextResponse } from "next/server";
 
+export const dynamic = "force-dynamic";
+
 /**
  * GET: Mengambil nilai setting berdasarkan key
  * Contoh: /api/settings?key=announcement_text

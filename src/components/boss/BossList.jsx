@@ -84,7 +84,7 @@ export default function BossList() {
     });
 
     return () => {
-      pusherClient?.unsubscribe("boss-timer-k3");
+      channel?.unbind("boss-updated");
     };
   }, [loadBosses]);
 

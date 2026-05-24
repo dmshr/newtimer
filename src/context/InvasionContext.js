@@ -52,7 +52,8 @@ export function InvasionProvider({ children }) {
     });
 
     return () => {
-      pusherClient?.unsubscribe("boss-timer-k3");
+      channel?.unbind("setting-updated");
+      channel?.unbind("invasion-reset");
     };
   }, []);
 

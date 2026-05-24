@@ -3,25 +3,13 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
 import { updateBoss } from "@/services/bossServices";
+import { getRarityClass } from "@/lib/colors"; // ✅ IMPORT DARI FILE BARU
 
 export default function AddBossModal({ isOpen, onClose, onSaved }) {
   const [name, setName] = useState("");
   const [interval, setInterval] = useState("1");
   const [rarity, setRarity] = useState("World");
   const [isLoading, setIsLoading] = useState(false);
-
-  // Helper Warna sesuai BossRow.jsx
-  const getRarityClass = (variant) => {
-    switch (variant?.toLowerCase()) {
-      case 'invasi': return 'text-orange-500 border-orange-900/50 shadow-[0_0_10px_rgba(249,115,22,0.1)]';
-      case 'legendary': return 'text-purple-500 border-purple-900/50 shadow-[0_0_10px_rgba(168,85,247,0.1)]';
-      case 'epic': return 'text-red-500 border-red-900/50 drop-shadow-[0_0_5px_rgba(239,68,68,0.5)]';
-      case 'rare': return 'text-blue-400 border-blue-900/50 shadow-[0_0_10px_rgba(59,130,246,0.1)]';
-      case 'world': return 'text-white border-zinc-700';
-      case 'mini boss': return 'text-cyan-400 border-cyan-900/50 shadow-[0_0_10px_rgba(34,211,238,0.1)]'; // ✅ Tambah warna Mini Boss
-      default: return 'text-zinc-300 border-zinc-800';
-    }
-  };
 
   async function handleAdd() {
     if (!name.trim()) return alert("Boss Name is required!");
@@ -107,7 +95,7 @@ export default function AddBossModal({ isOpen, onClose, onSaved }) {
                     <option value="Epic" className="bg-black text-red-500 drop-shadow-[0_0_5px_rgba(239,68,68,0.5)]">EPIC (RED)</option>
                     <option value="Legendary" className="bg-black text-purple-500">LEGENDARY (PURPLE)</option>
                     <option value="Invasi" className="bg-black text-orange-500">INVASI (ORANGE)</option>
-                    <option value="Mini Boss" className="bg-black text-cyan-400">MINI BOSS (CYAN)</option> {/* ✅ Opsi Baru */}
+                    <option value="Mini Boss" className="bg-black text-cyan-400">MINI BOSS (CYAN)</option>
                   </select>
                   <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[10px] opacity-30 text-white">▼</div>
                 </div>

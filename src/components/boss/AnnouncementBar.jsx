@@ -25,7 +25,7 @@ export default function AnnouncementBar() {
       if (data.key === "announcement_text") setText(data.value);
     });
 
-    return () => pusherClient?.unsubscribe("boss-timer-k3");
+    return () => channel?.unbind("setting-updated");
   }, []);
 
   // ✅ Logika Deteksi Panjang Teks

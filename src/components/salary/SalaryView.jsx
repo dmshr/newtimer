@@ -47,17 +47,36 @@ export default function SalaryView() {
   useEffect(() => {
     loadSalaryFromNeon();
     const channel = pusherClient?.subscribe("boss-timer-k3");
-    channel?.bind("salary-updated", () => {
+    
+    // Simpan fungsi ke dalam variabel agar unbind bisa melepaskan fungsi yang tepat
+    const handleSalaryUpdate = () => {
       loadSalaryFromNeon(); 
-    });
-    return () => pusherClient?.unsubscribe("boss-timer-k3");
+    };
+
+    channel?.bind("salary-updated", handleSalaryUpdate);
+    
+    return () => {
+      // ✅ Lepaskan pendengar dengan aman saat pindah tab
+      channel?.unbind("salary-updated", handleSalaryUpdate);
+    };
   }, []);
 
+  // ✅ PERBAIKAN LOGIKA KALKULASI MINUS & TIPE DATA
   const calculateTotalDiamonds = () => {
     const total = salaries.reduce((acc, item) => {
-      const numericValue = parseInt(item.total_amount?.replace(/[^0-9]/g, "") || "0", 10);
+      // 1. Ubah ke String dengan aman (Mencegah crash jika database mengirim tipe Integer)
+      const safeString = String(item.total_amount || "0");
+      
+      // 2. REGEX BARU: /[^0-9-]/g 
+      // Artinya: Hapus semua karakter KECUALI angka (0-9) dan tanda minus (-)
+      const cleanString = safeString.replace(/[^0-9-]/g, "");
+      
+      // 3. Konversi kembali ke angka (jika kosong, jadikan 0)
+      const numericValue = parseInt(cleanString || "0", 10);
+      
       return acc + numericValue;
     }, 0);
+    
     return new Intl.NumberFormat("id-ID").format(total);
   };
 
