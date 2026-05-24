@@ -18,8 +18,8 @@ export default function BossRow({ boss, onSelect, onEdit, onDelete, animateInvas
   const userRole = session?.user?.role || "User";
   
   // ✅ Pembagian Hak Akses
-  const isReadOnly = userRole === "User"; // User biasa tidak bisa klik manual
-  const canAutoUpdate = userRole === "SuperAdmin" || userRole === "Master"; // HANYA SuperAdmin & Master yang kirim auto-update
+  const isReadOnly = userRole === "User"; 
+  const canAutoUpdate = userRole === "SuperAdmin" || userRole === "Master"; 
 
   const [time, setTime] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -63,21 +63,16 @@ export default function BossRow({ boss, onSelect, onEdit, onDelete, animateInvas
 
   // ─── 2. SISTEM AUTO UPDATE LATAR BELAKANG (ANTI-LOOP & ANTI-DDOS) ───────
   useEffect(() => {
-    // ✅ PERBAIKAN: Syarat canAutoUpdate ditambahkan. 
-    // Jika rolenya User atau Admin, blok kode ini akan dilewati sepenuhnya.
     if (canAutoUpdate && time && time.seconds <= 0 && !autoUpdateLocked) {
       const secondsPastSpawn = Math.abs(time.seconds);
-      let maxWaitSeconds = 5 * 60; // 5 Menit
+      
+      // ✅ ATURAN BARU: Default 10 Menit untuk SEMUA Rarity
+      let maxWaitSeconds = 10 * 60; 
       const rarityLower = boss.rarity?.toLowerCase() || "";
 
-      if (rarityLower.includes("rare") || rarityLower.includes("blue") || rarityLower.includes("mini") || rarityLower.includes("cyan")) {
-        maxWaitSeconds = 3 * 60; 
-      } 
-      else if (rarityLower.includes("epic") || rarityLower.includes("red") || rarityLower.includes("invasi") || rarityLower.includes("invasion") || rarityLower.includes("orange")) {
-        maxWaitSeconds = 5 * 60; 
-      } 
-      else if (rarityLower.includes("legendary") || rarityLower.includes("purple")) {
-        maxWaitSeconds = 10 * 60; 
+      // ✅ KECUALI: Rare (Blue) diset menjadi 7 Menit
+      if (rarityLower.includes("rare") || rarityLower.includes("blue")) {
+        maxWaitSeconds = 7 * 60; 
       }
 
       if (secondsPastSpawn >= maxWaitSeconds) {
@@ -95,7 +90,7 @@ export default function BossRow({ boss, onSelect, onEdit, onDelete, animateInvas
         triggerBackgroundUpdate(autoPayload);
       }
     }
-  }, [time, autoUpdateLocked, boss, canAutoUpdate]); // ✅ canAutoUpdate masuk dalam dependency
+  }, [time, autoUpdateLocked, boss, canAutoUpdate]);
 
   useEffect(() => {
     if (time && time.seconds === 59 && !hasAlerted) {
