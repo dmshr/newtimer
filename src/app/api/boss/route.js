@@ -25,9 +25,18 @@ export async function POST(req) {
     if (!body.name) return Response.json({ error: "Name required" }, { status: 400 });
 
     const result = await saveBoss(body);
+
+    // ✅ PENANGANAN ANTI-RACE CONDITION: 
+    // Jika result kosong/tidak ada, berarti update ditolak oleh Database 
+    // (karena admin lain sudah menekan tombol di milidetik yang sama).
+    if (!result || result.length === 0) {
+      console.log(`[RACE CONDITION PREVENTED] Update untuk ${body.name} ditolak.`);
+      return Response.json({ success: false, ignored: true, message: "Update ditolak (Jadwal sudah berubah)" }, { status: 409 });
+    }
+
     const updatedBoss = result[0];
 
-    // Broadcast data lengkap (Payload)
+    // Broadcast data lengkap (Payload) hanya jika update berhasil
     await pusherServer.trigger("boss-timer-k3", "boss-updated", { 
       type: "UPDATE", 
       boss: updatedBoss 

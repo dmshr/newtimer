@@ -7,7 +7,7 @@ export async function getAllBosses() {
 
 // 2. UPDATE TIMER & ADD BOSS
 export async function saveBoss(data) {
-  const { name, killed, spawn, interval_hours, use_db_time, rarity, action, manual_spawn } = data; 
+  const { name, killed, spawn, interval_hours, use_db_time, rarity, action, manual_spawn, expected_spawn } = data; 
   const interval = parseFloat(interval_hours) || 1;
   const bossRarity = rarity || 'World';
   const safeKilled = killed || null;
@@ -19,7 +19,9 @@ export async function saveBoss(data) {
     return await sql`
       UPDATE bosses 
       SET spawn = TO_CHAR(TO_TIMESTAMP(spawn, 'DD Mon YYYY HH24:MI:SS') + (${interval} * interval '1 hour'), 'DD Mon YYYY HH24:MI:SS')
-      WHERE name = ${name} AND spawn <> '--:--:--' AND spawn IS NOT NULL AND spawn NOT LIKE '%NaN%'
+      WHERE name = ${name} 
+      AND spawn = ${expected_spawn} -- 🔒 KUNCI: Hanya update jika spawn di DB masih sama dengan expected_spawn
+      AND spawn <> '--:--:--' AND spawn IS NOT NULL
       RETURNING *
     `;
   }
@@ -34,6 +36,7 @@ export async function saveBoss(data) {
         interval_hours = ${interval},
         rarity = ${bossRarity}
       WHERE name = ${name}
+      AND spawn = ${expected_spawn} -- 🔒 KUNCI
       RETURNING *
     `;
   }
@@ -56,6 +59,7 @@ export async function saveBoss(data) {
         spawn = EXCLUDED.spawn,
         interval_hours = EXCLUDED.interval_hours,
         rarity = EXCLUDED.rarity
+      WHERE bosses.spawn = ${expected_spawn} -- 🔒 KUNCI
       RETURNING *
     `;
   }
@@ -80,6 +84,7 @@ export async function saveBoss(data) {
       spawn = COALESCE(EXCLUDED.spawn, bosses.spawn),
       interval_hours = EXCLUDED.interval_hours,
       rarity = EXCLUDED.rarity
+    WHERE bosses.spawn = ${expected_spawn} -- 🔒 KUNCI
     RETURNING *
   `;
 }
