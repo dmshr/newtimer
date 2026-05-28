@@ -5,8 +5,7 @@ import {
   deleteBoss 
 } from "@/repositories/bossRepository";
 import { pusherServer } from "@/lib/pusher";
-
-export const dynamic = "force-dynamic";
+import { revalidateTag } from "next/cache"; // ✅ IMPORT REVALIDASI CACHE
 
 // 1. AMBIL SEMUA DATA (GET)
 export async function GET() {
@@ -27,8 +26,7 @@ export async function POST(req) {
     const result = await saveBoss(body);
 
     // ✅ PENANGANAN ANTI-RACE CONDITION: 
-    // Jika result kosong/tidak ada, berarti update ditolak oleh Database 
-    // (karena admin lain sudah menekan tombol di milidetik yang sama).
+    // Jika result kosong, berarti update ditolak oleh Database karena jadwal sudah berubah
     if (!result || result.length === 0) {
       console.log(`[RACE CONDITION PREVENTED] Update untuk ${body.name} ditolak.`);
       return Response.json({ success: false, ignored: true, message: "Update ditolak (Jadwal sudah berubah)" }, { status: 409 });
@@ -36,7 +34,10 @@ export async function POST(req) {
 
     const updatedBoss = result[0];
 
-    // Broadcast data lengkap (Payload) hanya jika update berhasil
+    // ✅ MENGHANCURKAN CACHE LAMA AGAR PENGUNJUNG MENDAPAT DATA BARU
+    revalidateTag("bosses-data");
+
+    // Broadcast data LENGKAP 1 boss saja via Pusher
     await pusherServer.trigger("boss-timer-k3", "boss-updated", { 
       type: "UPDATE", 
       boss: updatedBoss 
@@ -56,6 +57,9 @@ export async function PATCH(req) {
 
     const result = await updateBossDetail(body);
     const updatedBoss = result[0];
+
+    // ✅ REVALIDASI CACHE
+    revalidateTag("bosses-data");
 
     await pusherServer.trigger("boss-timer-k3", "boss-updated", { 
       type: "UPDATE", 
@@ -78,7 +82,9 @@ export async function DELETE(req) {
 
     await deleteBoss(id);
 
-    // Broadcast ID yang dihapus
+    // ✅ REVALIDASI CACHE
+    revalidateTag("bosses-data");
+
     await pusherServer.trigger("boss-timer-k3", "boss-updated", { 
       type: "DELETE", 
       id: parseInt(id) 

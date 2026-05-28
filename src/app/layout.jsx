@@ -2,10 +2,11 @@ import { Suspense } from "react";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import "@/app/globals.css";
 import Header from "@/components/layout/Header";
+import Footer from "@/components/layout/Footer"; // ✅ IMPORT FOOTER
 import { SoundProvider } from "@/context/SoundContext";
 import { InvasionProvider } from "@/context/InvasionContext";
 import AuthProvider from "@/context/AuthProvider";
-import { TimezoneProvider } from "@/context/TimezoneContext"; // ✅ 1. IMPORT TIMEZONE
+import { TimezoneProvider } from "@/context/TimezoneContext";
 import TimeSync from "@/components/layout/TimeSync";
 
 const inter = Inter({ 
@@ -26,26 +27,30 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body className={`${inter.variable} ${mono.variable} bg-black text-white antialiased font-sans font-medium`}>
+      {/* ✅ TAMBAHKAN flex flex-col min-h-screen AGAR FOOTER DI BAWAH */}
+      <body className={`${inter.variable} ${mono.variable} bg-black text-white antialiased font-sans font-medium flex flex-col min-h-screen`}>
         <AuthProvider>
           <TimeSync /> 
           
           <SoundProvider>
-            <TimezoneProvider> {/* ✅ 2. BUNGKUS APLIKASI MULAI DARI SINI */}
+            <TimezoneProvider> 
               <InvasionProvider>
                 
-                {/* Header dibungkus Suspense karena menggunakan useSearchParams */}
+                {/* Header */}
                 <Suspense fallback={<div className="h-[60px] bg-black border-b border-zinc-900 w-full" />}>
                   <Header />
                 </Suspense>
                 
-                {/* Main content wrapping */}
-                <main className="min-h-screen">
+                {/* ✅ UBAH min-h-screen MENJADI flex-grow */}
+                <main className="flex-grow">
                   {children}
                 </main>
 
+                {/* ✅ PASANG FOOTER */}
+                <Footer />
+
               </InvasionProvider>
-            </TimezoneProvider> {/* ✅ 3. TUTUP BUNGKUSAN DI SINI */}
+            </TimezoneProvider> 
           </SoundProvider>
           
         </AuthProvider>

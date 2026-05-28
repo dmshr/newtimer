@@ -18,7 +18,6 @@ export default function BossRow({ boss, onSelect, onEdit, onDelete, animateInvas
   const { data: session } = useSession();
   const userRole = session?.user?.role || "User";
   const isReadOnly = userRole === "User"; 
-  const canAutoUpdate = userRole === "SuperAdmin" || userRole === "Master"; 
 
   const { tz, mounted } = useTimezone(); 
 
@@ -29,11 +28,8 @@ export default function BossRow({ boss, onSelect, onEdit, onDelete, animateInvas
 
   const [syncStatus, setSyncStatus] = useState("idle"); 
   const [lastPayload, setLastPayload] = useState(null);
-  const [autoUpdateLocked, setAutoUpdateLocked] = useState(false);
   
-  // ✅ Ref terpisah agar Jitter dan Error Timeout tidak bertabrakan
   const timeoutRef = useRef(null);
-  const autoUpdateTimeoutRef = useRef(null); 
 
   const formatDisplayTime = (fullStr) => {
     if (!fullStr || fullStr === "--:--:--" || fullStr.includes("NaN")) return "--:--:--";
@@ -68,47 +64,12 @@ export default function BossRow({ boss, onSelect, onEdit, onDelete, animateInvas
     return () => clearInterval(interval);
   }, [boss.spawn]);
 
-  // ✅ KETIKA DATA BERUBAH DARI SERVER (PUSHER) -> BATALKAN TEMBAKAN API BROWSER INI
+  // ✅ KETIKA DATA BERUBAH DARI SERVER (PUSHER) -> RESET STATUS
   useEffect(() => {
-    setAutoUpdateLocked(false);
     setSyncStatus("idle");
-    if (autoUpdateTimeoutRef.current) clearTimeout(autoUpdateTimeoutRef.current);
   }, [boss.spawn]);
 
-  // ─── 2. SISTEM AUTO UPDATE (DENGAN PROTEKSI JITTER ANTI-BERUNTUN) ───────
-  useEffect(() => {
-    if (canAutoUpdate && time && time.seconds <= 0 && !autoUpdateLocked) {
-      const secondsPastSpawn = Math.abs(time.seconds);
-      
-      let maxWaitSeconds = 10 * 60; 
-      const rarityLower = boss.rarity?.toLowerCase() || "";
-
-      if (rarityLower.includes("rare") || rarityLower.includes("blue")) {
-        maxWaitSeconds = 7 * 60; 
-      }
-
-      if (secondsPastSpawn >= maxWaitSeconds) {
-        console.log(`[Auto Update] Preparing update for ${boss.name}...`);
-        
-        setAutoUpdateLocked(true); 
-        
-        // ✅ PROTEKSI 1 (JITTER): Jeda acak 0-3 detik untuk memecah antrian request
-        const randomDelay = Math.floor(Math.random() * 3000); 
-
-        autoUpdateTimeoutRef.current = setTimeout(() => {
-          const autoPayload = {
-            name: boss.name,
-            interval_hours: boss.interval_hours,
-            rarity: boss.rarity,
-            action: 'not_spawned',
-            expected_spawn: boss.spawn // ✅ PROTEKSI 2: Kirim waktu target ke backend
-          };
-          triggerBackgroundUpdate(autoPayload);
-        }, randomDelay);
-      }
-    }
-  }, [time, autoUpdateLocked, boss, canAutoUpdate]);
-
+  // ─── SISTEM ALERT SUARA (SISA 1 MENIT) ───────
   useEffect(() => {
     if (time && time.seconds === 59 && !hasAlerted) {
       playAlert();
@@ -144,7 +105,6 @@ export default function BossRow({ boss, onSelect, onEdit, onDelete, animateInvas
   useEffect(() => {
     return () => {
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
-      if (autoUpdateTimeoutRef.current) clearTimeout(autoUpdateTimeoutRef.current);
     };
   }, []);
 
