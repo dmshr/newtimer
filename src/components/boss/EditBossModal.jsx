@@ -62,7 +62,7 @@ export default function EditBossModal({ boss, onClose, onSaved }) {
               </div>
 
               <div>
-                <label className="text-[9px] text-zinc-500 tracking-widest uppercase font-bold mb-1.5 block ml-1">Interval (Hours)</label>
+                <label className="text-[9px] text-zinc-500 tracking-widest uppercase font-bold mb-1.5 block ml-1">Interval (Minutes)</label>
                 <input 
                   type="number" 
                   value={interval} 

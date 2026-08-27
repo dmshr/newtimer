@@ -67,7 +67,7 @@ export default function AddBossModal({ isOpen, onClose, onSaved }) {
               </div>
 
               <div className="relative">
-                <label className="absolute -top-2 left-3 bg-[#0b0b0b] px-1.5 text-[10px] text-gray-500 uppercase tracking-wider z-10 font-bold">Respawn Interval (Hours)</label>
+                <label className="absolute -top-2 left-3 bg-[#0b0b0b] px-1.5 text-[10px] text-gray-500 uppercase tracking-wider z-10 font-bold">Respawn Interval (Minutes)</label>
                 <div className="relative flex items-center">
                   <input
                     type="number"

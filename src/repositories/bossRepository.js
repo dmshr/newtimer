@@ -8,7 +8,7 @@ export async function getAllBosses() {
 // 2. UPDATE TIMER & ADD BOSS
 export async function saveBoss(data) {
   const { name, killed, spawn, interval_hours, use_db_time, rarity, action, manual_spawn, expected_spawn } = data; 
-  const interval = parseFloat(interval_hours) || 1;
+  const interval = parseFloat(interval_hours) || 60;
   const bossRarity = rarity || 'World';
   const safeKilled = killed || null;
   const safeSpawn = spawn || null;
@@ -18,7 +18,7 @@ export async function saveBoss(data) {
   if (action === 'not_spawned') {
     return await sql`
       UPDATE bosses 
-      SET spawn = TO_CHAR(TO_TIMESTAMP(spawn, 'DD Mon YYYY HH24:MI:SS') + (${interval} * interval '1 hour'), 'DD Mon YYYY HH24:MI:SS')
+      SET spawn = TO_CHAR(TO_TIMESTAMP(spawn, 'DD Mon YYYY HH24:MI:SS') + (${interval} * interval '1 minute'), 'DD Mon YYYY HH24:MI:SS')
       WHERE name = ${name} 
       AND spawn = ${expected_spawn} -- 🔒 KUNCI: Hanya update jika spawn di DB masih sama dengan expected_spawn
       AND spawn <> '--:--:--' AND spawn IS NOT NULL
@@ -49,7 +49,7 @@ export async function saveBoss(data) {
       VALUES (
         ${name}, 
         TO_CHAR(NOW() AT TIME ZONE 'Asia/Jakarta', 'DD Mon YYYY HH24:MI:SS'), 
-        TO_CHAR((NOW() + (${interval} * interval '1 hour')) AT TIME ZONE 'Asia/Jakarta', 'DD Mon YYYY HH24:MI:SS'), 
+        TO_CHAR((NOW() + (${interval} * interval '1 minute')) AT TIME ZONE 'Asia/Jakarta', 'DD Mon YYYY HH24:MI:SS'), 
         ${interval},
         ${bossRarity}
       )
@@ -59,7 +59,7 @@ export async function saveBoss(data) {
         spawn = EXCLUDED.spawn,
         interval_hours = EXCLUDED.interval_hours,
         rarity = EXCLUDED.rarity
-      WHERE bosses.spawn = ${expected_spawn} -- 🔒 KUNCI
+      WHERE bosses.spawn = ${expected_spawn}
       RETURNING *
     `;
   }
@@ -72,7 +72,7 @@ export async function saveBoss(data) {
       ${name}, 
       ${safeKilled}, 
       CASE 
-        WHEN ${safeKilled}::text IS NOT NULL THEN TO_CHAR((TO_TIMESTAMP(${safeKilled}::text, 'DD Mon YYYY HH24:MI:SS') + (${interval} * interval '1 hour')), 'DD Mon YYYY HH24:MI:SS')
+        WHEN ${safeKilled}::text IS NOT NULL THEN TO_CHAR((TO_TIMESTAMP(${safeKilled}::text, 'DD Mon YYYY HH24:MI:SS') + (${interval} * interval '1 minute')), 'DD Mon YYYY HH24:MI:SS')
         ELSE NULL 
       END, 
       ${interval},
@@ -84,7 +84,7 @@ export async function saveBoss(data) {
       spawn = COALESCE(EXCLUDED.spawn, bosses.spawn),
       interval_hours = EXCLUDED.interval_hours,
       rarity = EXCLUDED.rarity
-    WHERE bosses.spawn = ${expected_spawn} -- 🔒 KUNCI
+    WHERE bosses.spawn = ${expected_spawn}
     RETURNING *
   `;
 }
@@ -92,7 +92,7 @@ export async function saveBoss(data) {
 // 3. UPDATE DETAIL (Nama, Interval, Rarity)
 export async function updateBossDetail(data) {
   const { id, name, interval_hours, rarity } = data;
-  const interval = parseFloat(interval_hours) || 1;
+  const interval = parseFloat(interval_hours) || 60;
 
   return await sql`
     UPDATE bosses 
@@ -102,7 +102,7 @@ export async function updateBossDetail(data) {
       rarity = ${rarity},
       spawn = CASE 
         WHEN killed IS NOT NULL AND killed <> '' AND killed <> '--:--:--' AND killed NOT LIKE '%NaN%'
-        THEN TO_CHAR((TO_TIMESTAMP(killed, 'DD Mon YYYY HH24:MI:SS') + (${interval} * interval '1 hour')), 'DD Mon YYYY HH24:MI:SS')
+        THEN TO_CHAR((TO_TIMESTAMP(killed, 'DD Mon YYYY HH24:MI:SS') + (${interval} * interval '1 minute')), 'DD Mon YYYY HH24:MI:SS')
         ELSE spawn 
       END
     WHERE id = ${id}
