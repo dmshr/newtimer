@@ -21,7 +21,7 @@ const mono = JetBrains_Mono({
 
 export const metadata = {
   title: "Kain 3",
-  description: "Boss Timer DOGE2",
+  description: "Boss Timer Erica 1",
 };
 
 export default function RootLayout({ children }) {
